@@ -1,0 +1,98 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* ---- Accent (indigo → pink) ---- */
+  --accent: #8b7bff;
+  --accent-2: #ff6fae;
+  --accent-grad: linear-gradient(135deg, #8b7bff 0%, #b46bff 45%, #ff6fae 100%);
+  --accent-soft: rgba(139, 123, 255, 0.18);
+
+  /* ---- Text on glass ---- */
+  --text: #f4f5fb;
+  --text-dim: rgba(244, 245, 251, 0.72);
+  --muted: rgba(244, 245, 251, 0.5);
+
+  /* ---- Liquid glass tokens ---- */
+  --glass: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(255, 255, 255, 0.16);
+  --glass-2: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-hi: rgba(255, 255, 255, 0.45);
+  --blur: 22px;
+
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.38);
+  --glass-inset: inset 0 1px 1px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.08);
+
+  --radius: 22px;
+  --radius-sm: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Global dark aurora backdrop — every glass surface floats over this. */
+body {
+  min-height: 100vh;
+  color: var(--text);
+  background-color: #0a0b18;
+  background-image:
+    radial-gradient(at 14% 18%, rgba(139, 123, 255, 0.5) 0px, transparent 52%),
+    radial-gradient(at 86% 12%, rgba(255, 111, 174, 0.42) 0px, transparent 50%),
+    radial-gradient(at 78% 84%, rgba(74, 198, 255, 0.4) 0px, transparent 52%),
+    radial-gradient(at 22% 82%, rgba(123, 97, 255, 0.42) 0px, transparent 52%);
+  background-size: 200% 200%;
+  background-attachment: fixed;
+  animation: auroraDrift 22s ease-in-out infinite;
+  overflow-x: hidden;
+}
+
+@keyframes auroraDrift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+}
+
+/* Shared glass primitive */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+}
+
+::placeholder {
+  color: var(--muted);
+}
+
+/* Scrollbars that suit the dark glass theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
