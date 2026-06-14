@@ -3,6 +3,7 @@ and room message persistence."""
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from geoalchemy2 import Geography
 from sqlalchemy import cast, distinct, func, select, update
@@ -19,14 +20,22 @@ DEFAULT_RADIUS_M = 1000
 DEFAULT_PRECISION = 6
 
 
-async def _radius_and_precision(session: AsyncSession) -> tuple[int, int]:
-    radius = await settings_repo.get_int(
+async def geofence_radius_m(session: AsyncSession) -> int:
+    """Admin-tunable room radius in metres (the 1 km gate by default)."""
+    return await settings_repo.get_int(
         session, "geofence_radius_meters", DEFAULT_RADIUS_M
     )
-    precision = await settings_repo.get_int(
+
+
+async def geohash_precision(session: AsyncSession) -> int:
+    """Admin-tunable geohash precision used to key rooms by cell."""
+    return await settings_repo.get_int(
         session, "default_geohash_precision", DEFAULT_PRECISION
     )
-    return radius, precision
+
+
+async def _radius_and_precision(session: AsyncSession) -> tuple[int, int]:
+    return await geofence_radius_m(session), await geohash_precision(session)
 
 
 def _geo_point(lat: float, lng: float):
@@ -132,8 +141,20 @@ async def room_member_count(session: AsyncSession, room_id: uuid.UUID) -> int:
     return int(n or 0)
 
 
-async def list_messages(session: AsyncSession, *, room_id: uuid.UUID, limit: int = 50):
-    """Most recent messages, returned oldest-first. Rows: (RoomMessage, name, username, email)."""
+async def list_messages(
+    session: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    limit: int = 50,
+    since: datetime | None = None,
+):
+    """Most recent messages, returned oldest-first. Rows: (RoomMessage, name, username, email).
+
+    When ``since`` is given (the message-retention cutoff), expired messages are
+    excluded even if the cleanup job hasn't deleted them yet — so a client never
+    sees a message past its 24h life. Pagination (``limit``) is applied after the
+    time filter, so it stays correct as expired rows drop out.
+    """
     stmt = (
         select(RoomMessage, User.display_name, User.username, User.email)
         .join(User, User.id == RoomMessage.sender_id)
@@ -141,6 +162,8 @@ async def list_messages(session: AsyncSession, *, room_id: uuid.UUID, limit: int
         .order_by(RoomMessage.sent_at.desc(), RoomMessage.id.desc())
         .limit(limit)
     )
+    if since is not None:
+        stmt = stmt.where(RoomMessage.sent_at >= since)
     rows = (await session.execute(stmt)).all()
     rows.reverse()
     return rows

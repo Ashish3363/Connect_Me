@@ -52,6 +52,19 @@ function Login() {
       if (data?.user?.id) {
         localStorage.setItem('user_id', data.user.id)
       }
+      // Cache the signed-in identity so Profile can show it instantly (it's
+      // re-confirmed from GET /users/me on that page).
+      if (data?.user?.email) {
+        localStorage.setItem('email', data.user.email)
+      }
+      if (data?.user?.display_name) {
+        localStorage.setItem('display_name', data.user.display_name)
+      }
+      // Cache-buster for the avatar URL (footer/roster); '' when no photo yet.
+      localStorage.setItem('avatar_v', data?.user?.avatar_updated_at || '')
+      // Fresh login → play the "Connect to your locality" intro once. It's
+      // suppressed on later visits to /rooms (e.g. coming back from a chat).
+      sessionStorage.removeItem('localityIntroSeen')
       navigate('/rooms')
     } catch (err) {
       setError(err.message)

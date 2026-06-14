@@ -21,6 +21,12 @@ what changed and when.
 | Authentication (login / register UI) | [auth.md](auth.md) | Implemented | 2026-06-10 |
 | Liquid-glass design system & app shell | [design-system.md](design-system.md) | Implemented | 2026-06-10 |
 | Locality intro experience | [locality-intro.md](locality-intro.md) | Implemented | 2026-06-10 |
+| Message rate limiting | [message-rate-limiting.md](message-rate-limiting.md) | Implemented | 2026-06-14 |
+| Redis pub/sub WebSocket fan-out | [redis-pubsub-fanout.md](redis-pubsub-fanout.md) | Implemented | 2026-06-14 |
+| Location freshness & geofence membership | [location-freshness.md](location-freshness.md) | Implemented | 2026-06-14 |
+| Message expiration (24h TTL + cleanup job) | [message-expiration.md](message-expiration.md) | Implemented | 2026-06-14 |
+| WhatsApp-style chat message layout | [chat-message-layout.md](chat-message-layout.md) | Implemented | 2026-06-15 |
+| User profile & edit (name, photo, password) | [user-profile.md](user-profile.md) | Implemented | 2026-06-15 |
 
 ## Project layout (quick reference)
 

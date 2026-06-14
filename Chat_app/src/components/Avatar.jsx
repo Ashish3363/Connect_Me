@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 
 // Initials avatar with a deterministic colour derived from the name.
 // No network requests — keeps the bundle light and works offline.
@@ -23,19 +23,38 @@ function initials(name) {
   return (first + second).toUpperCase()
 }
 
-function Avatar({ name = '?', size = 44, online }) {
+// `src` renders a photo instead of initials (e.g. a profile avatar). When it's
+// absent — or the image fails to load (e.g. the user has no photo, so the
+// public avatar route 404s) — we fall back to the deterministic initials chip.
+function Avatar({ name = '?', size = 44, online, src }) {
+  // Remember which src failed (rather than a bare boolean) so that when `src`
+  // changes to a new user, the photo is attempted again — no effect needed.
+  const [failedSrc, setFailedSrc] = useState(null)
+
+  const showPhoto = src && failedSrc !== src
   return (
     <span
       className="avatar"
       style={{
         width: size,
         height: size,
-        background: colorFor(name),
+        background: showPhoto ? 'transparent' : colorFor(name),
         fontSize: size * 0.4,
       }}
       aria-hidden="true"
     >
-      {initials(name)}
+      {showPhoto ? (
+        <img
+          className="avatar-img"
+          src={src}
+          alt=""
+          width={size}
+          height={size}
+          onError={() => setFailedSrc(src)}
+        />
+      ) : (
+        initials(name)
+      )}
       {online != null && (
         <span className={`avatar-dot ${online ? 'is-online' : ''}`} />
       )}

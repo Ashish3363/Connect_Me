@@ -33,3 +33,16 @@ class RoomMessageOut(BaseModel):
 
 class SendMessageIn(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
+
+
+class LocationUpdateIn(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+
+
+class LocationStatusOut(BaseModel):
+    fresh: bool
+    within_geofence: bool
+    distance_m: float
+    radius_m: int
+    location_updated_at: datetime

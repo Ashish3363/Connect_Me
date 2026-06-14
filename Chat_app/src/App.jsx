@@ -10,6 +10,7 @@ const NearbyRooms = lazy(() => import('./pages/NearbyRooms.jsx'))
 const ChatRoom = lazy(() => import('./pages/ChatRoom.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
+const EditProfile = lazy(() => import('./pages/EditProfile.jsx'))
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/edit"
+          element={
+            <ProtectedRoute>
+              <EditProfile />
             </ProtectedRoute>
           }
         />

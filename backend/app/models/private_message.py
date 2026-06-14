@@ -30,4 +30,6 @@ class PrivateMessage(Base):
 
     __table_args__ = (
         Index("ix_private_messages_conversation_sent", "conversation_id", "sent_at"),
+        # Single-column index for the global expiration sweep (see room_message).
+        Index("ix_private_messages_sent_at", "sent_at"),
     )

@@ -2,8 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import Footer from '../components/Footer'
-import { getRoom, getRoomMessages, connectRoom } from '../services/chat'
+import MessageList from '../components/MessageList'
+import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl } from '../services/chat'
 import '../styles/chat.css'
+
+// Keep the stored fix comfortably under the server's 5-min freshness window.
+const LOCATION_REFRESH_MS = 4 * 60 * 1000
 
 function ChatRoom() {
   const { roomId } = useParams()
@@ -13,24 +17,96 @@ function ChatRoom() {
   const [messages, setMessages] = useState([])
   const [loadedFor, setLoadedFor] = useState(null)
   const [draft, setDraft] = useState('')
-  const scrollRef = useRef(null)
+  const [notice, setNotice] = useState(null)
   const connRef = useRef(null)
+  // The last text we tried to send, and the text held back because the send was
+  // rejected for a stale fix — resent on the next location_ack so the user's
+  // message isn't silently lost.
+  const lastAttemptRef = useRef(null)
+  const pendingResendRef = useRef(null)
 
   // Open the room WebSocket. It's created INSIDE the effect (not useMemo) so
   // React StrictMode's mount→cleanup→mount cycle yields a fresh, open socket
   // each time, instead of reusing one its own cleanup already closed.
   useEffect(() => {
     const conn = connectRoom(roomId)
+    connRef.current = conn
+    let disposed = false
+    let refreshTimer = null
+    let recheckTimer = null
+
+    // Read the device GPS and push it over the socket. The backend's freshness
+    // gate blocks messaging until it receives one of these.
+    const pushLocation = async () => {
+      try {
+        const { lat, lng } = await getCurrentPosition()
+        if (!disposed) conn.sendLocation(lat, lng)
+      } catch (err) {
+        if (disposed) return
+        setNotice(
+          err?.code === 1 // PERMISSION_DENIED
+            ? 'Location permission denied — enable it to chat in this area.'
+            : 'Can’t read your location — messaging is paused until it’s back.',
+        )
+      }
+    }
+
     conn.setHandlers({
+      onOpen: () => pushLocation(),
       onMessage: (msg) =>
         setMessages((m) => (m.some((x) => x.id === msg.id) ? m : [...m, msg])),
+      onLocationRequired: () => {
+        setNotice('Updating your location…')
+        pushLocation()
+      },
+      onLocationAck: () => {
+        setNotice(null)
+        const pending = pendingResendRef.current
+        if (pending) {
+          pendingResendRef.current = null
+          conn.send(pending)
+        }
+      },
+      onGeofenceWarning: (f) => {
+        setNotice(
+          `You're ${Math.round(f.distance_m)} m away — move back within ` +
+            `${f.grace_seconds_remaining}s or you'll leave this room.`,
+        )
+        if (recheckTimer) clearTimeout(recheckTimer)
+        recheckTimer = setTimeout(
+          pushLocation,
+          (f.recheck_interval_seconds || 30) * 1000,
+        )
+      },
+      onGeofenceExit: () => {
+        setNotice('You’ve left this area — returning to nearby rooms.')
+        conn.close()
+        navigate('/rooms')
+      },
+      onError: (f) => {
+        if (f.code === 'stale_location') {
+          pendingResendRef.current = lastAttemptRef.current
+          setNotice('Refreshing your location…')
+          pushLocation()
+        } else if (f.code === 'rate_limited') {
+          setNotice(`You're sending too fast — wait ${f.retry_after}s.`)
+        } else {
+          setNotice(f.detail || 'Something went wrong.')
+        }
+      },
     })
-    connRef.current = conn
+
+    // Proactively keep the fix fresh so messaging never stalls mid-session.
+    refreshTimer = setInterval(pushLocation, LOCATION_REFRESH_MS)
+
     return () => {
+      disposed = true
+      if (refreshTimer) clearInterval(refreshTimer)
+      if (recheckTimer) clearTimeout(recheckTimer)
       conn.close()
       connRef.current = null
     }
-  }, [roomId])
+  }, [roomId, navigate])
 
   // Load room + group history.
   useEffect(() => {
@@ -46,22 +122,20 @@ function ChatRoom() {
     }
   }, [roomId])
 
-  // Auto-scroll to newest.
-  useEffect(() => {
-    const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
-
   const loading = loadedFor !== roomId
 
-  // Members = everyone who has spoken (You + neighbours), newest last.
+  // Members = everyone who has spoken (You + neighbours), keyed by id so each
+  // person appears once and carries the id needed to load their avatar.
   const members = useMemo(() => {
-    const seen = []
+    const myId = localStorage.getItem('user_id')
+    const map = new Map()
+    if (myId) map.set(myId, { id: myId, name: 'You' })
     for (const m of messages) {
-      if (m.sender && !seen.includes(m.sender)) seen.push(m.sender)
+      if (m.senderId && !map.has(m.senderId)) {
+        map.set(m.senderId, { id: m.senderId, name: m.from === 'me' ? 'You' : m.sender })
+      }
     }
-    if (!seen.includes('You')) seen.unshift('You')
-    return seen
+    return [...map.values()]
   }, [messages])
 
   const handleSend = useCallback(
@@ -70,6 +144,7 @@ function ChatRoom() {
       const text = draft.trim()
       if (!text) return
       setDraft('')
+      lastAttemptRef.current = text // so we can resend if the fix is stale
       connRef.current?.send(text) // server persists + echoes back to everyone (incl. us)
     },
     [draft],
@@ -87,10 +162,10 @@ function ChatRoom() {
             </div>
           </div>
           <div className="roster">
-            {members.map((name) => (
-              <div className="roster-item" key={name}>
-                <Avatar name={name} size={40} online />
-                <span className="roster-name">{name === 'You' ? 'You' : name}</span>
+            {members.map((mem) => (
+              <div className="roster-item" key={mem.id}>
+                <Avatar name={mem.name} size={40} online src={avatarUrl(mem.id)} />
+                <span className="roster-name">{mem.name}</span>
               </div>
             ))}
           </div>
@@ -107,32 +182,29 @@ function ChatRoom() {
             </div>
           </header>
 
-          <div className="chat-scroll" ref={scrollRef}>
-            {loading ? (
-              <div className="chat-loading">Loading conversation…</div>
-            ) : messages.length === 0 ? (
-              <div className="chat-empty">
-                You started this room. Say hi to your neighbourhood 👋
-              </div>
-            ) : (
-              messages.map((m, i) => {
-                const mine = m.from === 'me'
-                const showSender =
-                  !mine && (i === 0 || messages[i - 1].sender !== m.sender)
-                return (
-                  <div key={m.id} className={`bubble-row ${mine ? 'mine' : 'theirs'}`}>
-                    <div className="bubble-group">
-                      {showSender && <span className="bubble-sender">{m.sender}</span>}
-                      <div className="bubble">
-                        {m.text}
-                        <span className="bubble-time">{m.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
+          <MessageList
+            messages={messages}
+            loading={loading}
+            emptyHint="You started this room. Say hi to your neighbourhood 👋"
+          />
+
+          {notice && (
+            <div
+              role="status"
+              style={{
+                margin: '0 16px 10px',
+                padding: '8px 14px',
+                borderRadius: 12,
+                background: 'rgba(255, 176, 32, 0.14)',
+                border: '1px solid rgba(255, 176, 32, 0.35)',
+                color: '#b9791a',
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              {notice}
+            </div>
+          )}
 
           <form className="chat-composer" onSubmit={handleSend}>
             <input

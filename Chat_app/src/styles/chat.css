@@ -241,7 +241,7 @@
   min-width: 0;
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--glass-2);
+  background: var(--glass);
   backdrop-filter: blur(var(--blur)) saturate(150%);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(150%);
   border: 1px solid var(--glass-border);
@@ -351,7 +351,8 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  /* Base spacing is tight (within a sender's run); a new run adds margin. */
+  gap: 2px;
 }
 .chat-loading { margin: auto; color: var(--text-dim); }
 .chat-empty {
@@ -362,55 +363,82 @@
   font-size: 15px;
 }
 
-.bubble-row { display: flex; }
-.bubble-row.mine { justify-content: flex-end; }
+.bubble-row { display: flex; align-items: flex-end; gap: 8px; }
+/* Own messages sit on the LEFT (default flex-start); others on the RIGHT. */
+.bubble-row.theirs { justify-content: flex-end; }
+/* Sender photo slot. Fixed width so grouped rows (empty slot) stay aligned. */
+.bubble-avatar { width: 32px; height: 32px; flex-shrink: 0; }
+/* Others' avatar goes to the far right, after their bubble. */
+.bubble-row.theirs .bubble-avatar { order: 2; }
+.bubble-row.theirs .bubble-group { order: 1; }
+/* A message that starts a new sender's run gets extra space above it;
+   consecutive (grouped) messages stay tight, so runs read as one block. */
+.bubble-row:not(.grouped) { margin-top: 10px; }
 .bubble-group {
   display: flex;
   flex-direction: column;
-  max-width: min(74%, 480px);
+  /* 70–80% of the chat width, capped so bubbles don't get unwieldy on desktop.
+     min-width:0 lets long words wrap instead of overflowing the flex row. */
+  max-width: min(78%, 520px);
+  min-width: 0;
 }
-.bubble-row.mine .bubble-group { align-items: flex-end; }
+.bubble-row.theirs .bubble-group { align-items: flex-end; }
 .bubble-sender {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-dim);
-  margin: 0 0 3px 12px;
+  /* Sender label is shown only for others' (right-aligned) bubbles. */
+  margin: 0 12px 3px 0;
 }
 .bubble {
   max-width: 100%;
-  padding: 11px 16px 22px;
+  /* inline-flex so the timestamp shares the bubble's box: the bubble grows to
+     fit BOTH the text and the time, side by side on the last line. Short
+     messages ("hi") no longer collide with the clock. */
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: 8px;
+  padding: 8px 14px;
   border-radius: 20px;
   font-size: 14px;
   line-height: 1.45;
-  position: relative;
+  /* Wrap long words / URLs and keep author-entered newlines, never overflow. */
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   animation: bubbleIn 0.25s ease both;
 }
+/* min-width:0 lets a long word wrap inside the flex item instead of overflowing. */
+.bubble-text { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
 .bubble-row.theirs .bubble {
-  background: var(--glass-strong);
+  /* Neighbours' messages: soft neutral glass, no tint. */
+  background: rgba(255, 255, 255, 0.07);
   color: var(--text);
-  border: 1px solid var(--glass-border);
-  border-bottom-left-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  /* others are on the right — tail points down-right */
+  border-bottom-right-radius: 6px;
 }
 .bubble-row.mine .bubble {
-  background: linear-gradient(
-    135deg,
-    rgba(139, 123, 255, 0.6),
-    rgba(255, 111, 174, 0.55)
-  );
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-bottom-right-radius: 6px;
-  box-shadow: 0 6px 20px rgba(139, 123, 255, 0.35);
+  /* Own messages: a faint single-accent tint instead of the bold pink→indigo
+     gradient — enough to tell them apart, calm enough to match the rest. */
+  background: rgba(139, 123, 255, 0.16);
+  color: var(--text);
+  border: 1px solid rgba(139, 123, 255, 0.28);
+  /* own messages are on the left — tail points down-left */
+  border-bottom-left-radius: 6px;
 }
 .bubble-time {
-  position: absolute;
-  right: 12px;
-  bottom: 6px;
+  /* Pushed to the far right of the last line; never wider than its content, so
+     it always sits beside the text rather than under it. */
+  margin-left: auto;
+  align-self: flex-end;
+  flex-shrink: 0;
   font-size: 10px;
+  line-height: 1.6;
   opacity: 0.7;
+  white-space: nowrap;
 }
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
@@ -460,15 +488,16 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: var(--accent-grad);
+  border: 1px solid rgba(139, 123, 255, 0.4);
+  /* Calm single-accent fill instead of the pink gradient + heavy glow. */
+  background: rgba(139, 123, 255, 0.85);
   color: #fff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 6px 18px rgba(255, 111, 174, 0.45);
+  box-shadow: 0 2px 10px rgba(139, 123, 255, 0.28);
   transition: transform 0.12s, opacity 0.2s, filter 0.2s;
 }
 .send-btn:hover { filter: brightness(1.08); }
@@ -614,8 +643,36 @@
 }
 .profile-card h2 { margin: 14px 0 0; color: var(--text); }
 .profile-card p { margin: 0; color: var(--text-dim); }
+/* Logout is a secondary/danger action so it doesn't compete with Edit Profile. */
 .logout-btn {
-  margin-top: 20px;
+  padding: 12px 30px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 120, 130, 0.5);
+  background: rgba(255, 80, 95, 0.12);
+  color: #ff8a96;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.12s;
+}
+.logout-btn:hover { background: rgba(255, 80, 95, 0.2); }
+.logout-btn:active { transform: scale(0.97); }
+
+/* ===== Profile actions + shared buttons ===== */
+.profile-actions {
+  margin-top: 22px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.profile-actions .primary-btn,
+.profile-actions .logout-btn {
+  width: 100%;
+  max-width: 260px;
+}
+.primary-btn {
   padding: 12px 30px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -627,8 +684,93 @@
   box-shadow: 0 8px 22px rgba(139, 123, 255, 0.45);
   transition: filter 0.2s, transform 0.12s;
 }
-.logout-btn:hover { filter: brightness(1.08); }
-.logout-btn:active { transform: scale(0.97); }
+.primary-btn:hover { filter: brightness(1.08); }
+.primary-btn:active { transform: scale(0.97); }
+.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: none; }
+.ghost-btn {
+  padding: 11px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.12s;
+}
+.ghost-btn:hover { background: var(--accent-soft); }
+.ghost-btn:active { transform: scale(0.97); }
+.ghost-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== Edit profile form ===== */
+.avatar-img { object-fit: cover; border-radius: 50%; display: block; }
+.edit-card {
+  border-radius: var(--radius);
+  padding: 28px 26px;
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+}
+.edit-photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.field input {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus { border-color: var(--accent); }
+.field-hint { font-size: 12px; color: var(--text-dim); }
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+  margin: 0;
+}
+.field-group legend {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 6px;
+}
+.form-error,
+.form-success {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.form-error {
+  background: rgba(255, 80, 95, 0.12);
+  border: 1px solid rgba(255, 120, 130, 0.4);
+  color: #ff8a96;
+}
+.form-success {
+  background: rgba(56, 224, 160, 0.12);
+  border: 1px solid rgba(56, 224, 160, 0.4);
+  color: #38e0a0;
+}
+.edit-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
 /* ===== Responsive: phones ===== */
 @media (max-width: 760px) {
@@ -636,4 +778,7 @@
   /* Phones: hide the roster, show the group stream full-width. */
   .chat-sidebar { display: none; }
   .chat-back { display: inline-block; }
+  .chat-scroll { padding: 14px; }
+  /* Roomier bubbles on narrow screens (still within the 70–80% band). */
+  .bubble-group { max-width: 82%; }
 }

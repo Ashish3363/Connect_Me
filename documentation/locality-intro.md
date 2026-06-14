@@ -1,7 +1,7 @@
 # Locality Intro Experience
 
 **Status:** Implemented
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-15
 
 The cinematic opening shown on `/rooms` after login, before the room grid appears.
 
@@ -21,6 +21,19 @@ slideshow of three aerial locality photos:
 
 Timings live at the top of `NearbyRooms.jsx` (type speed, hold, fade) and are
 easy to retune. Respects `prefers-reduced-motion`.
+
+### Plays once per login
+
+The intro plays **only the first time `/rooms` is shown after login**. On later
+visits — most importantly when **returning from a chat room** (`navigate('/rooms')`)
+— `/rooms` mounts straight into the **rooms** phase, no replayed animation.
+
+- A session flag `localityIntroSeen` (`sessionStorage`) tracks "already shown".
+- It's **cleared on successful login** (`Login.jsx`), so each login replays it once.
+- It's **set when the intro finishes** (`NearbyRooms.jsx`); `phase` also initialises
+  from it, so a remount with the flag present skips directly to the room grid.
+
+Going back from a chat therefore lands on the locality (rooms) page directly.
 
 ## Image optimization
 
@@ -45,11 +58,14 @@ ship. A reusable script converts them to web-ready WebP:
 ## Known limitations
 
 - Fixed three background images; not configurable per locality.
-- The intro plays on every visit to `/rooms` (no "seen it" skip).
 
 ---
 
 ## Changelog
+
+### 2026-06-15
+- Intro now plays **once per login** instead of on every `/rooms` visit; returning
+  from a chat goes straight to the rooms list (session flag `localityIntroSeen`).
 
 ### 2026-06-10
 - Built the dimmed slideshow + typewriter headline that fades into the room grid.

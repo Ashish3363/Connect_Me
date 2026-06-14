@@ -9,6 +9,11 @@ import '../styles/rooms.css'
 
 const HEADLINE = 'Connect to your locality'
 
+// Session flag: the intro plays once per login. Cleared on login, set when the
+// intro finishes, so returning to /rooms (e.g. from a chat) skips straight to
+// the rooms list instead of replaying the headline animation.
+const INTRO_SEEN_KEY = 'localityIntroSeen'
+
 const GEO_MESSAGES = {
   denied: 'Location permission is blocked. Enable it to see and start chats within 1 km of you.',
   unavailable: "We couldn't get your location. Check that location services are on.",
@@ -24,7 +29,10 @@ function NearbyRooms() {
   const [slide, setSlide] = useState(0)
   const [typed, setTyped] = useState('')
   const [vanishing, setVanishing] = useState(false)
-  const [phase, setPhase] = useState('intro') // 'intro' | 'rooms'
+  // Start at the rooms list directly if the intro already played this session.
+  const [phase, setPhase] = useState(() =>
+    sessionStorage.getItem(INTRO_SEEN_KEY) ? 'rooms' : 'intro',
+  ) // 'intro' | 'rooms'
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState('')
 
@@ -60,8 +68,10 @@ function NearbyRooms() {
     return () => clearInterval(id)
   }, [])
 
-  // Typewriter -> hold -> fade/blur away -> reveal rooms.
+  // Typewriter -> hold -> fade/blur away -> reveal rooms. Runs only the first
+  // time per login; afterwards we mount straight into the 'rooms' phase.
   useEffect(() => {
+    if (sessionStorage.getItem(INTRO_SEEN_KEY)) return
     let cancelled = false
     const timers = []
     const push = (fn, ms) => timers.push(setTimeout(fn, ms))
@@ -76,7 +86,11 @@ function NearbyRooms() {
         push(() => {
           if (cancelled) return
           setVanishing(true)
-          push(() => !cancelled && setPhase('rooms'), 850)
+          push(() => {
+            if (cancelled) return
+            sessionStorage.setItem(INTRO_SEEN_KEY, '1')
+            setPhase('rooms')
+          }, 850)
         }, 1100)
       }
     }
@@ -143,7 +157,7 @@ function NearbyRooms() {
         <>
           <div className="rooms-wrap">
             <header className="rooms-header">
-              <h2>Chats near you</h2>
+              <h2>People near you</h2>
               <p>{subtitle}</p>
             </header>
 
@@ -158,44 +172,46 @@ function NearbyRooms() {
                   </button>
                 )}
               </div>
+            ) : rooms === null ? (
+              <div className="rooms-empty glass">
+                <span className="rooms-empty-icon">📡</span>
+                <p>Finding chats within 1&nbsp;km…</p>
+              </div>
+            ) : rooms.length ? (
+              // A room already exists in this area — join it instead of starting
+              // a parallel one, so the start box is hidden while any room is live.
+              <div className="rooms-grid">
+                {rooms.map((room, i) => (
+                  <button
+                    key={room.id}
+                    className="room-card glass"
+                    style={{ animationDelay: `${i * 70}ms` }}
+                    onClick={() => navigate(`/rooms/${room.id}`)}
+                  >
+                    <span className="room-card-top">
+                      <span className="room-pin">📍 nearby</span>
+                      <span className="room-dist">{room.distanceM} m</span>
+                    </span>
+                    <span className="room-card-name">{room.name}</span>
+                    <span className="room-card-meta">
+                      <span className="dot-live" />
+                      {room.members} {room.members === 1 ? 'person' : 'people'} here
+                    </span>
+                  </button>
+                ))}
+              </div>
             ) : (
+              // No room in this area yet — offer to start one. This reappears
+              // automatically if every nearby room is later removed (e.g. after
+              // long inactivity), so a dead area can be revived.
               <>
                 <StartChatBox onStart={handleStart} busy={starting} disabled={!coords} />
                 {startError && <p className="start-error">{startError}</p>}
-
-                {rooms === null ? (
-                  <div className="rooms-empty glass">
-                    <span className="rooms-empty-icon">📡</span>
-                    <p>Finding chats within 1&nbsp;km…</p>
-                  </div>
-                ) : rooms.length ? (
-                  <div className="rooms-grid">
-                    {rooms.map((room, i) => (
-                      <button
-                        key={room.id}
-                        className="room-card glass"
-                        style={{ animationDelay: `${i * 70}ms` }}
-                        onClick={() => navigate(`/rooms/${room.id}`)}
-                      >
-                        <span className="room-card-top">
-                          <span className="room-pin">📍 nearby</span>
-                          <span className="room-dist">{room.distanceM} m</span>
-                        </span>
-                        <span className="room-card-name">{room.name}</span>
-                        <span className="room-card-meta">
-                          <span className="dot-live" />
-                          {room.members} {room.members === 1 ? 'person' : 'people'} here
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rooms-empty glass">
-                    <span className="rooms-empty-icon">🛰️</span>
-                    <p>No one's chatting around you right now.</p>
-                    <span>Be the first — start a chat above.</span>
-                  </div>
-                )}
+                <div className="rooms-empty glass">
+                  <span className="rooms-empty-icon">🛰️</span>
+                  <p>No one's chatting around you right now.</p>
+                  <span>Be the first — start a chat above.</span>
+                </div>
               </>
             )}
           </div>

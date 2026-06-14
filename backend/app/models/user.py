@@ -2,7 +2,16 @@ import uuid
 from datetime import datetime
 
 from geoalchemy2 import Geography
-from sqlalchemy import Boolean, DateTime, Enum, Index, String, func, text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    Index,
+    LargeBinary,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,6 +56,14 @@ class User(Base):
         Boolean, nullable=False, server_default=text("false")
     )
 
+    # Profile photo stored inline in the DB (small images, MVP). The bytes are
+    # deferred so they're never loaded on a normal user fetch — only the
+    # dedicated avatar route selects them. `avatar_updated_at` doubles as the
+    # "has a photo" flag and a cache-buster for the client's <img> URL.
+    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    avatar_content_type: Mapped[str | None] = mapped_column(String(100))
+    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     current_location: Mapped[str | None] = mapped_column(
         Geography(geometry_type="POINT", srid=4326, spatial_index=False)
     )
@@ -62,6 +79,12 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+    @property
+    def has_avatar(self) -> bool:
+        # Uses the timestamp (always loaded) rather than the deferred bytes, so
+        # checking it never triggers a load of the image data.
+        return self.avatar_updated_at is not None
 
     __table_args__ = (
         Index("ix_users_current_geohash", "current_geohash"),

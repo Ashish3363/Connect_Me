@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Avatar from './Avatar'
+import { avatarUrl } from '../services/chat'
 
 // Bottom navigation: Settings (left), Chats/groups (center),
 // and the profile avatar at the right corner.
@@ -10,6 +11,13 @@ function Footer({ userName = 'You' }) {
 
   const isActive = (path) =>
     path === '/rooms' ? pathname.startsWith('/rooms') : pathname === path
+
+  // Show the signed-in user's photo (falls back to initials if they have none).
+  // `avatar_v` (avatar_updated_at, cached at login/profile load) busts the cache
+  // after a photo change.
+  const myId = localStorage.getItem('user_id')
+  const myName = localStorage.getItem('display_name') || userName
+  const myAvatar = myId ? avatarUrl(myId, localStorage.getItem('avatar_v')) : undefined
 
   return (
     <nav className="footer-nav" aria-label="Primary">
@@ -37,7 +45,7 @@ function Footer({ userName = 'You' }) {
         aria-label="Profile"
         title="Profile"
       >
-        <Avatar name={userName} size={40} />
+        <Avatar name={myName} size={40} src={myAvatar} />
       </button>
     </nav>
   )
