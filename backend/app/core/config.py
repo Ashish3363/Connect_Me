@@ -36,6 +36,10 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    cors_origin_regex: str | None = (
+        r"https://connect-me-wine(-[a-z0-9-]+)?\.vercel\.app"
+    )
+
     # --- Message expiration -------------------------------------------------
     # Messages live for this many hours from creation (sent_at). The retrieval
     # API filters on this so expired rows are never returned even before the

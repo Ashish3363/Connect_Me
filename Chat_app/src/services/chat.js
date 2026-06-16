@@ -11,7 +11,8 @@
 //   WS   /ws/rooms/{id}?token=       -> connectRoom()
 // ============================================================================
 
-const API = '/api'
+const API =
+  import.meta.env.VITE_API_URL || '/api'
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -206,9 +207,12 @@ export function connectRoom(roomId, initialHandlers = {}) {
   const queue = []
 
   const token = localStorage.getItem('token') || ''
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const url = `${proto}://${window.location.host}/ws/rooms/${roomId}?token=${encodeURIComponent(token)}`
+  const wsBase =
+    import.meta.env.VITE_WS_URL ||
+    `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
+  const url =
+    `${wsBase}/ws/rooms/${roomId}?token=${encodeURIComponent(token)}`
   const ws = new WebSocket(url)
 
   const sendRaw = (obj) => {

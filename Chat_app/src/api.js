@@ -1,7 +1,9 @@
 // Thin client for the FastAPI auth backend.
 // Requests go through the Vite dev proxy: /api/* -> http://localhost:8000/*
 
-const BASE = '/api'
+const BASE =
+  import.meta.env.VITE_API_URL ||
+  '/api';
 
 async function request(path, body) {
   let res
