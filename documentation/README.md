@@ -27,6 +27,7 @@ what changed and when.
 | Message expiration (24h TTL + cleanup job) | [message-expiration.md](message-expiration.md) | Implemented | 2026-06-14 |
 | WhatsApp-style chat message layout | [chat-message-layout.md](chat-message-layout.md) | Implemented | 2026-06-15 |
 | User profile & edit (name, photo, password) | [user-profile.md](user-profile.md) | Implemented | 2026-06-15 |
+| Production deployment (Neon + Render + Vercel) | [deployment.md](deployment.md) | Implemented (code-side) | 2026-06-16 |
 
 ## Project layout (quick reference)
 
