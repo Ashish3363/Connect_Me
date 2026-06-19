@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'motion/react'
 import Avatar from '../components/Avatar'
-import Footer from '../components/Footer'
 import MessageList from '../components/MessageList'
 import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl } from '../services/chat'
+import ConfettiBackground from '../components/ui/confetti-background'
 import '../styles/chat.css'
 
-// Keep the stored fix comfortably under the server's 5-min freshness window.
 const LOCATION_REFRESH_MS = 4 * 60 * 1000
+
+const NAV_ITEMS = [
+  { label: '← Back',   path: '/rooms'    },
+  { label: 'Settings', path: '/settings' },
+  { label: 'Profile',  path: '/profile'  },
+]
 
 function ChatRoom() {
   const { roomId } = useParams()
@@ -18,16 +24,16 @@ function ChatRoom() {
   const [loadedFor, setLoadedFor] = useState(null)
   const [draft, setDraft] = useState('')
   const [notice, setNotice] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const myId   = localStorage.getItem('user_id') || ''
+  const myName = localStorage.getItem('display_name') || localStorage.getItem('email')?.split('@')[0] || 'You'
+  const myPhoto = myId ? avatarUrl(myId, localStorage.getItem('avatar_v')) : undefined
+
   const connRef = useRef(null)
-  // The last text we tried to send, and the text held back because the send was
-  // rejected for a stale fix — resent on the next location_ack so the user's
-  // message isn't silently lost.
   const lastAttemptRef = useRef(null)
   const pendingResendRef = useRef(null)
 
-  // Open the room WebSocket. It's created INSIDE the effect (not useMemo) so
-  // React StrictMode's mount→cleanup→mount cycle yields a fresh, open socket
-  // each time, instead of reusing one its own cleanup already closed.
   useEffect(() => {
     const conn = connectRoom(roomId)
     connRef.current = conn
@@ -35,8 +41,6 @@ function ChatRoom() {
     let refreshTimer = null
     let recheckTimer = null
 
-    // Read the device GPS and push it over the socket. The backend's freshness
-    // gate blocks messaging until it receives one of these.
     const pushLocation = async () => {
       try {
         const { lat, lng } = await getCurrentPosition()
@@ -44,9 +48,9 @@ function ChatRoom() {
       } catch (err) {
         if (disposed) return
         setNotice(
-          err?.code === 1 // PERMISSION_DENIED
+          err?.code === 1
             ? 'Location permission denied — enable it to chat in this area.'
-            : 'Can’t read your location — messaging is paused until it’s back.',
+            : "Can't read your location — messaging is paused until it's back.",
         )
       }
     }
@@ -79,7 +83,7 @@ function ChatRoom() {
         )
       },
       onGeofenceExit: () => {
-        setNotice('You’ve left this area — returning to nearby rooms.')
+        setNotice("You've left this area — returning to nearby rooms.")
         conn.close()
         navigate('/rooms')
       },
@@ -96,7 +100,6 @@ function ChatRoom() {
       },
     })
 
-    // Proactively keep the fix fresh so messaging never stalls mid-session.
     refreshTimer = setInterval(pushLocation, LOCATION_REFRESH_MS)
 
     return () => {
@@ -108,7 +111,6 @@ function ChatRoom() {
     }
   }, [roomId, navigate])
 
-  // Load room + group history.
   useEffect(() => {
     let alive = true
     Promise.all([getRoom(roomId), getRoomMessages(roomId)]).then(([r, msgs]) => {
@@ -117,26 +119,10 @@ function ChatRoom() {
       setMessages(msgs)
       setLoadedFor(roomId)
     })
-    return () => {
-      alive = false
-    }
+    return () => { alive = false }
   }, [roomId])
 
   const loading = loadedFor !== roomId
-
-  // Members = everyone who has spoken (You + neighbours), keyed by id so each
-  // person appears once and carries the id needed to load their avatar.
-  const members = useMemo(() => {
-    const myId = localStorage.getItem('user_id')
-    const map = new Map()
-    if (myId) map.set(myId, { id: myId, name: 'You' })
-    for (const m of messages) {
-      if (m.senderId && !map.has(m.senderId)) {
-        map.set(m.senderId, { id: m.senderId, name: m.from === 'me' ? 'You' : m.sender })
-      }
-    }
-    return [...map.values()]
-  }, [messages])
 
   const handleSend = useCallback(
     (e) => {
@@ -144,87 +130,125 @@ function ChatRoom() {
       const text = draft.trim()
       if (!text) return
       setDraft('')
-      lastAttemptRef.current = text // so we can resend if the fix is stale
-      connRef.current?.send(text) // server persists + echoes back to everyone (incl. us)
+      lastAttemptRef.current = text
+      connRef.current?.send(text)
     },
     [draft],
   )
 
   return (
     <div className="chat-room">
-      <main className="chat-body">
-        <aside className="chat-sidebar">
-          <div className="sidebar-head">
-            <button className="back-rooms" onClick={() => navigate('/rooms')} aria-label="Back to rooms">‹</button>
-            <div className="sidebar-title">
-              <strong>{room?.name ?? 'Room'}</strong>
-              <span>{loading ? 'loading…' : `${members.length} people within 1 km`}</span>
+      <ConfettiBackground />
+      <div className="chat-container">
+        <main className="chat-body">
+
+          {/* ── Animated left nav (hamburger → expands into menu) ── */}
+          <motion.nav
+            className="chat-left-nav"
+            animate={{ width: menuOpen ? 220 : 52 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
+          >
+            {/* Hamburger bars */}
+            <div className="chat-hamburger-bars">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  animate={{ width: menuOpen ? (i === 1 ? 14 : 20) : 20 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  className="chat-bar"
+                  style={{ width: 20 }}
+                />
+              ))}
             </div>
-          </div>
-          <div className="roster">
-            {members.map((mem) => (
-              <div className="roster-item" key={mem.id}>
-                <Avatar name={mem.name} size={40} online src={avatarUrl(mem.id)} />
-                <span className="roster-name">{mem.name}</span>
-              </div>
-            ))}
-          </div>
-        </aside>
 
-        <section className="chat-panel">
-          <header className="chat-header">
-            <button className="chat-back" onClick={() => navigate('/rooms')} aria-label="Back">‹</button>
-            <div className="chat-peer">
-              <span className="chat-peer-name">{room?.name ?? 'Room'}</span>
-              <span className="chat-peer-status">
-                <span className="dot-live" /> {members.length} people nearby
-              </span>
-            </div>
-          </header>
+            {/* Menu items — stagger in on open, fade out on close */}
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  className="chat-nav-items"
+                  initial={{ opacity: 0, scaleY: 0.9, y: -4 }}
+                  animate={{ opacity: 1, scaleY: 1,   y: 0  }}
+                  exit={{    opacity: 0, scaleY: 0.9,  y: -4 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ transformOrigin: 'top' }}
+                >
+                  {/* User avatar + name */}
+                  <motion.div
+                    className="chat-nav-user"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0, duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <Avatar name={myName} size={36} src={myPhoto} />
+                    <span className="chat-nav-username">{myName}</span>
+                  </motion.div>
 
-          <MessageList
-            messages={messages}
-            loading={loading}
-            emptyHint="You started this room. Say hi to your neighbourhood 👋"
-          />
+                  <div className="chat-nav-divider" />
 
-          {notice && (
-            <div
-              role="status"
-              style={{
-                margin: '0 16px 10px',
-                padding: '8px 14px',
-                borderRadius: 12,
-                background: 'rgba(255, 176, 32, 0.14)',
-                border: '1px solid rgba(255, 176, 32, 0.35)',
-                color: '#b9791a',
-                fontSize: 13,
-                lineHeight: 1.4,
-              }}
-            >
-              {notice}
-            </div>
-          )}
+                  {NAV_ITEMS.map(({ label, path }, i) => (
+                    <motion.button
+                      key={label}
+                      className="chat-nav-btn"
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: (i + 1) * 0.055, duration: 0.2, ease: 'easeOut' }}
+                      onClick={() => navigate(path)}
+                    >
+                      {label}
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.nav>
 
-          <form className="chat-composer" onSubmit={handleSend}>
-            <input
-              type="text"
-              placeholder="Message your neighbourhood…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-label="Message"
+          {/* ── Chat panel (auto-shrinks as nav expands) ── */}
+          <section className="chat-panel">
+            <MessageList
+              messages={messages}
+              loading={loading}
+              emptyHint="You started this room. Say hi to your neighbourhood 👋"
             />
-            <button type="submit" className="send-btn" disabled={!draft.trim()} aria-label="Send">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
-          </form>
-        </section>
-      </main>
 
-      <Footer />
+            {notice && (
+              <div
+                role="status"
+                style={{
+                  margin: '0 12px 10px',
+                  padding: '8px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 176, 32, 0.14)',
+                  border: '1px solid rgba(255, 176, 32, 0.35)',
+                  color: '#fbbf24',
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                }}
+              >
+                {notice}
+              </div>
+            )}
+
+            <form className="chat-composer" onSubmit={handleSend}>
+              <input
+                type="text"
+                placeholder="Message your neighbourhood…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                aria-label="Message"
+              />
+              <button type="submit" className="send-btn" disabled={!draft.trim()} aria-label="Send">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </form>
+          </section>
+
+        </main>
+      </div>
     </div>
   )
 }

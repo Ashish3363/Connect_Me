@@ -4,6 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #000;
   color: var(--text-dim);
   font-size: 15px;
 }
@@ -35,8 +36,16 @@
   background: #38e0a0;
 }
 
-/* ===== Chat room layout (floating glass panels over the aurora) ===== */
-.chat-room,
+/* ===== Chat room layout ===== */
+.chat-room {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+
 .page-shell {
   height: 100dvh;
   display: flex;
@@ -44,28 +53,116 @@
   overflow: hidden;
 }
 
+/* Centered grey card that holds the entire chat UI */
+.chat-container {
+  width: 73vw;
+  height: 88vh;
+  background: #2c2c2e;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
 .chat-body {
   flex: 1;
   display: flex;
-  gap: 14px;
-  padding: 14px;
+  gap: 10px;
+  padding: 10px;
   min-height: 0;
+}
+
+/* ── Left nav panel (hamburger → expands into menu) ── */
+.chat-left-nav {
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #242426;
+  border-radius: 14px;
+  cursor: pointer;
+  min-height: 0;
+}
+
+.chat-hamburger-bars {
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.chat-bar {
+  display: block;
+  height: 2px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.chat-nav-items {
+  padding: 4px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.chat-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 8px;
+}
+
+.chat-nav-username {
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-nav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 4px 4px 6px;
+}
+
+.chat-nav-btn {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  border-radius: 8px;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chat-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 /* --- Sidebar (people in room) --- */
 .chat-sidebar {
-  width: 340px;
+  width: 260px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-radius: var(--radius);
+  background: #242426;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--glass);
-  backdrop-filter: blur(var(--blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-inset);
 }
 
 .sidebar-head {
@@ -73,25 +170,27 @@
   align-items: center;
   gap: 10px;
   padding: 16px;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 .sidebar-title {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 .sidebar-title strong {
-  font-size: 17px;
-  color: var(--text);
+  font-size: 1rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 .sidebar-title span {
   font-size: 12px;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.4);
 }
 .back-rooms {
-  border: 1px solid var(--glass-border);
-  background: var(--glass-2);
-  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -102,7 +201,7 @@
   transition: background 0.2s;
 }
 .back-rooms:hover {
-  background: var(--accent-soft);
+  background: rgba(139, 123, 255, 0.18);
 }
 
 .sidebar-search {
@@ -239,33 +338,29 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border-radius: var(--radius);
+  background: #242426;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--glass);
-  backdrop-filter: blur(var(--blur)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(150%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-inset);
 }
 .chat-panel--empty {
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .chat-header {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 12px;
-  padding: 14px 18px;
-  background: var(--glass);
-  border-bottom: 1px solid var(--glass-border);
+  padding: 10px 14px;
+  background: #242426;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 .chat-back {
   display: none;
   border: none;
   background: transparent;
-  color: var(--text);
+  color: #fff;
   font-size: 26px;
   line-height: 1;
   cursor: pointer;
@@ -278,16 +373,17 @@
   min-width: 0;
 }
 .chat-peer-name {
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--text);
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 .chat-peer-status {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* live dot (room is active) */
@@ -322,11 +418,12 @@
   padding: 8px 12px;
   border-radius: var(--radius-sm);
 }
-.roster-item:hover { background: var(--glass-2); }
+.roster-item:hover { background: rgba(255, 255, 255, 0.04); }
 .roster-name {
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 .chat-actions { display: flex; gap: 8px; }
 .icon-btn {
@@ -351,16 +448,18 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
-  /* Base spacing is tight (within a sender's run); a new run adds margin. */
   gap: 2px;
+  background: #242426;
 }
-.chat-loading { margin: auto; color: var(--text-dim); }
+.chat-loading { margin: auto; color: rgba(255, 255, 255, 0.4); font-weight: 300; }
 .chat-empty {
   margin: auto;
   max-width: 320px;
   text-align: center;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 15px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
 }
 
 .bubble-row { display: flex; align-items: flex-end; gap: 8px; }
@@ -385,9 +484,8 @@
 .bubble-row.theirs .bubble-group { align-items: flex-end; }
 .bubble-sender {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-  /* Sender label is shown only for others' (right-aligned) bubbles. */
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.4);
   margin: 0 12px 3px 0;
 }
 .bubble {
@@ -413,31 +511,24 @@
 /* min-width:0 lets a long word wrap inside the flex item instead of overflowing. */
 .bubble-text { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
 .bubble-row.theirs .bubble {
-  /* Neighbours' messages: soft neutral glass, no tint. */
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  /* others are on the right — tail points down-right */
+  background: #323234;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom-right-radius: 6px;
 }
 .bubble-row.mine .bubble {
-  /* Own messages: a faint single-accent tint instead of the bold pink→indigo
-     gradient — enough to tell them apart, calm enough to match the rest. */
-  background: rgba(139, 123, 255, 0.16);
-  color: var(--text);
+  background: #35354a;
+  color: #fff;
   border: 1px solid rgba(139, 123, 255, 0.28);
-  /* own messages are on the left — tail points down-left */
   border-bottom-left-radius: 6px;
 }
 .bubble-time {
-  /* Pushed to the far right of the last line; never wider than its content, so
-     it always sits beside the text rather than under it. */
   margin-left: auto;
   align-self: flex-end;
   flex-shrink: 0;
   font-size: 10px;
   line-height: 1.6;
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.35);
   white-space: nowrap;
 }
 @keyframes bubbleIn {
@@ -466,43 +557,57 @@
   display: flex;
   gap: 10px;
   padding: 14px 18px;
-  background: var(--glass);
-  border-top: 1px solid var(--glass-border);
+  background: #242426;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 .chat-composer input {
   flex: 1;
-  padding: 13px 18px;
-  border: 1px solid var(--glass-border);
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  background: var(--glass-2);
-  color: var(--text);
+  background: #1c1c1e;
+  color: #fff;
   font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
   outline: none;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s;
 }
 .chat-composer input:focus {
-  border-color: var(--accent);
-  background: var(--glass-strong);
+  border-color: rgba(139, 123, 255, 0.5);
+  background: #202024;
 }
 .send-btn {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  border: 1px solid rgba(139, 123, 255, 0.4);
-  /* Calm single-accent fill instead of the pink gradient + heavy glow. */
-  background: rgba(139, 123, 255, 0.85);
+  border: none;
+  background: rgba(139, 123, 255, 0.9);
   color: #fff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 10px rgba(139, 123, 255, 0.28);
-  transition: transform 0.12s, opacity 0.2s, filter 0.2s;
+  transition: transform 0.12s, opacity 0.2s;
 }
-.send-btn:hover { filter: brightness(1.08); }
+.send-btn:hover { opacity: 0.85; }
 .send-btn:active { transform: scale(0.92); }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Footer inside the chat container — no outer rounding or margin */
+.chat-container .footer-nav {
+  margin: 0;
+  border-radius: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: none;
+  background: #242426;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 
 /* ===== Footer nav (floating glass bar) ===== */
 .footer-nav {
@@ -772,13 +877,13 @@
 }
 .edit-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
-/* ===== Responsive: phones ===== */
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  .chat-container { width: 90vw; }
+}
 @media (max-width: 760px) {
-  .chat-body { padding: 10px; gap: 10px; }
-  /* Phones: hide the roster, show the group stream full-width. */
-  .chat-sidebar { display: none; }
-  .chat-back { display: inline-block; }
+  .chat-container { width: 100vw; height: 100dvh; border-radius: 0; }
+  .chat-body { padding: 6px; gap: 6px; }
   .chat-scroll { padding: 14px; }
-  /* Roomier bubbles on narrow screens (still within the 70–80% band). */
   .bubble-group { max-width: 82%; }
 }
