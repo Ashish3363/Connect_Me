@@ -12,9 +12,13 @@
     "optimize:images": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "lucide-react": "^1.21.0",
+    "motion": "^12.40.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router-dom": "^7.17.0"
+    "react-router-dom": "^7.17.0",
+    "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -25,6 +29,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "playwright": "^1.61.0",
     "sharp": "^0.34.5",
     "vite": "^8.0.12"
   }

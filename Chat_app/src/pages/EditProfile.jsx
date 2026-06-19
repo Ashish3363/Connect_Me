@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Avatar from '../components/Avatar'
-import Footer from '../components/Footer'
+import { motion } from 'motion/react'
 import {
   getMe,
   avatarUrl,
@@ -9,7 +8,6 @@ import {
   uploadAvatar,
   changePassword,
 } from '../services/chat'
-import '../styles/chat.css'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_BYTES = 2 * 1024 * 1024
@@ -126,6 +124,7 @@ function EditProfile() {
         setPreviewUrl(null)
       }
       setSuccess('Your profile has been updated.')
+      navigate('/profile', { replace: true })
     } catch (err) {
       setError(err.message || 'Could not save your changes.')
     } finally {
@@ -133,23 +132,58 @@ function EditProfile() {
     }
   }
 
-  const name = displayName.trim() || me?.email?.split('@')[0] || 'You'
+  const name = displayName.trim() || 'Your name'
   const previewSrc =
     previewUrl ||
-    (me?.hasAvatar && me?.id ? avatarUrl(me.id, me.avatarUpdatedAt) : undefined)
+    (me?.hasAvatar && me?.id ? avatarUrl(me.id, me.avatarUpdatedAt) : null)
+  const initials = name.slice(0, 2).toUpperCase()
 
   return (
-    <div className="page-shell">
-      <header className="page-head">
-        <button className="back-rooms" onClick={() => navigate('/profile')} aria-label="Back">‹</button>
-        <h1>Edit Profile</h1>
-      </header>
+    <>
+      <style>
+        {`
+          .profile-edit-card {
+            transition: transform 700ms ease-out, box-shadow 250ms ease;
+          }
 
-      <div className="page-content">
-        <form className="edit-card" onSubmit={handleSave} noValidate>
-          {/* Photo + preview */}
-          <div className="edit-photo">
-            <Avatar name={name} size={96} src={previewSrc} />
+          .profile-edit-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+          }
+        `}
+      </style>
+
+      <div className="relative flex min-h-screen w-full items-center justify-center overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 px-4 py-8 dark:from-black dark:to-zinc-950" style={{ perspective: 1200 }}>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="fixed left-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-2xl leading-none text-gray-900 shadow-sm backdrop-blur transition hover:bg-white dark:bg-zinc-900/80 dark:text-zinc-100 dark:hover:bg-zinc-800"
+          aria-label="Back to profile"
+        >
+          ‹
+        </button>
+
+        <motion.form
+          className="profile-edit-card w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-lg dark:bg-zinc-900 dark:shadow-2xl dark:shadow-black/80 sm:mx-4"
+          onSubmit={handleSave}
+          noValidate
+          initial={{ rotateY: 90, opacity: 0 }}
+          animate={{ rotateY: 0, opacity: 1 }}
+          transition={{ duration: 0.35, ease: 'easeInOut' }}
+          style={{ transformOrigin: 'center center', backfaceVisibility: 'hidden' }}
+        >
+          <div className="flex flex-col items-center gap-3 px-5 pb-4 pt-7">
+            <div className="h-24 w-24 overflow-hidden rounded-full ring-2 ring-gray-200 dark:ring-zinc-700">
+              {previewSrc ? (
+                <img src={previewSrc} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-linear-to-br from-zinc-800 to-zinc-950 flex items-center justify-center">
+                  <span className="text-2xl font-light text-white/30 select-none">{initials}</span>
+                </div>
+              )}
+            </div>
+            <h2 className="text-xl font-medium text-gray-900 dark:text-zinc-100">{name}</h2>
+            <div className="flex justify-center">
             <input
               ref={fileInputRef}
               type="file"
@@ -159,17 +193,19 @@ function EditProfile() {
             />
             <button
               type="button"
-              className="ghost-btn"
+              className="rounded-lg bg-white/90 px-4 py-2 text-sm font-medium text-gray-900 shadow-sm backdrop-blur transition-all duration-500 ease-out hover:scale-105 hover:bg-white active:scale-95"
               onClick={() => fileInputRef.current?.click()}
             >
               {me?.hasAvatar || file ? 'Change photo' : 'Upload photo'}
             </button>
-            <span className="field-hint">JPG, PNG, or WEBP · up to 2 MB</span>
+            </div>
           </div>
 
-          {/* Display name */}
-          <label className="field">
-            <span className="field-label">Display name</span>
+          <div className="space-y-4 p-5">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-zinc-200">
+                Display name
+              </span>
             <input
               type="text"
               value={displayName}
@@ -177,64 +213,82 @@ function EditProfile() {
               minLength={3}
               maxLength={30}
               placeholder="Your name"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:bg-zinc-700"
             />
-            <span className="field-hint">3–30 characters</span>
+              <span className="mt-1 block text-xs text-gray-500 dark:text-zinc-500">
+                JPG, PNG, or WEBP photo up to 2 MB. Name should be 3-30 characters.
+              </span>
           </label>
 
-          {/* Password (optional) */}
-          <fieldset className="field-group">
-            <legend>Change password</legend>
-            <span className="field-hint">Leave blank to keep your current password.</span>
-            <label className="field">
-              <span className="field-label">Current password</span>
+            <fieldset className="space-y-3 rounded-2xl border border-gray-200 p-4 dark:border-zinc-700">
+              <legend className="px-1 text-sm font-medium text-gray-700 dark:text-zinc-200">
+                Change password
+              </legend>
+              <p className="text-xs text-gray-500 dark:text-zinc-500">
+                Leave blank to keep your current password.
+              </p>
+              <label className="block">
+                <span className="mb-1.5 block text-sm text-gray-600 dark:text-zinc-300">
+                  Current password
+                </span>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="off"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:bg-zinc-700"
               />
             </label>
-            <label className="field">
-              <span className="field-label">New password</span>
+              <label className="block">
+                <span className="mb-1.5 block text-sm text-gray-600 dark:text-zinc-300">
+                  New password
+                </span>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
+                autoComplete="off"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:bg-zinc-700"
               />
             </label>
-            <label className="field">
-              <span className="field-label">Confirm new password</span>
+              <label className="block">
+                <span className="mb-1.5 block text-sm text-gray-600 dark:text-zinc-300">
+                  Confirm new password
+                </span>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
+                autoComplete="off"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:bg-zinc-700"
               />
             </label>
           </fieldset>
 
-          {error && <p className="form-error">{error}</p>}
-          {success && <p className="form-success">{success}</p>}
+            {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
+            {success && <p className="text-sm text-emerald-600 dark:text-emerald-400">{success}</p>}
 
-          <div className="edit-actions">
+            <div className="flex justify-center gap-3 pt-1">
             <button
               type="button"
-              className="ghost-btn"
-              onClick={() => navigate('/profile')}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-500 ease-out hover:scale-105 hover:bg-gray-200 active:scale-95 disabled:opacity-60 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+              onClick={() => navigate(-1)}
               disabled={saving}
             >
               Cancel
             </button>
-            <button type="submit" className="primary-btn" disabled={saving}>
+              <button
+                type="submit"
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all duration-500 ease-out hover:scale-105 hover:bg-gray-800 hover:shadow-md active:scale-95 disabled:opacity-60 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:hover:shadow-lg dark:hover:shadow-black/50"
+                disabled={saving}
+              >
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
+            </div>
           </div>
-        </form>
+        </motion.form>
       </div>
-
-      <Footer />
-    </div>
+    </>
   )
 }
 

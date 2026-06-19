@@ -28,7 +28,7 @@ All edits are in `Chat_app/src/styles/chat.css` (pure CSS, no markup changes).
   (`rgba(139,123,255,0.85)`) with a subtle `0 2px 10px` shadow.
 - **Chat panel (`.chat-panel`)** — bumped the surface from `--glass-2` (0.06)
   to `--glass` (0.10) so the panel reads brighter/airier and matches the room
-  cards on the People near you screen.
+  cards on the Find people near You screen.
 
 ## Not changed
 
