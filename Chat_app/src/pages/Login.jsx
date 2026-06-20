@@ -50,6 +50,10 @@ export default function Login() {
     e.preventDefault()
     setError('')
 
+    if (isRegister && !firstName.trim()) {
+      setError('Please enter your first name.')
+      return
+    }
     if (!EMAIL_RE.test(email)) {
       setError('Please enter a valid email address.')
       return
@@ -65,8 +69,9 @@ export default function Login() {
 
     setLoading(true)
     try {
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim()
       const data = isRegister
-        ? await signup({ email, password })
+        ? await signup({ email, password, displayName })
         : await login({ email, password })
 
       if (data?.access_token) localStorage.setItem('token', data.access_token)

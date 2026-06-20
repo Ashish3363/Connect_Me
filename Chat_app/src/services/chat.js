@@ -100,6 +100,14 @@ function mapUser(u) {
   }
 }
 
+// Total registered accounts — public, no auth needed (GET /users/count).
+export async function getUserCount() {
+  const res = await fetch(`${API}/users/count`)
+  if (!res.ok) throw await toError(res)
+  const data = await res.json()
+  return data.count
+}
+
 // The authenticated user's own profile (GET /users/me).
 export async function getMe() {
   return mapUser(await apiGet('/users/me'))

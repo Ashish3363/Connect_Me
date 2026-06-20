@@ -169,6 +169,41 @@
 .start-send:active { transform: scale(0.92); }
 .start-send:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
+/* Compound selector (.room-card.users-stat-card) so these win over the
+   later-declared .room-card rules — otherwise source order would override
+   position/transform and the card drops into normal flow off-screen. */
+.room-card.users-stat-card {
+  cursor: default;
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 180px;
+  max-width: 340px;
+  z-index: 10;
+  background: #000;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 28px rgba(139, 123, 255, 0.35);
+  text-align: center;
+  animation: statCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.room-card.users-stat-card .room-card-name {
+  color: rgba(255, 255, 255, 0.85);
+}
+.room-card.users-stat-card:hover {
+  transform: translateX(-50%) translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+}
+.room-card.users-stat-card:active {
+  transform: translateX(-50%) translateY(-1px) scale(0.99);
+}
+@keyframes statCardIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .rooms-grid {
   display: flex;
   flex-wrap: wrap;

@@ -47,6 +47,6 @@ export function login({ email, password }) {
   return request('/auth/login', { email, password })
 }
 
-export function signup({ email, password }) {
-  return request('/auth/signup', { email, password })
+export function signup({ email, password, displayName }) {
+  return request('/auth/signup', { email, password, display_name: displayName })
 }

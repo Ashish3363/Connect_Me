@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { getNearbyRooms, startLocalRoom } from '../services/chat'
+import { getNearbyRooms, startLocalRoom, getUserCount } from '../services/chat'
 import { getPosition } from '../services/geo'
 import StartChatBox from '../components/StartChatBox'
 import CinematicSwitch from '../components/ui/cinematic-glow-toggle'
@@ -103,6 +103,15 @@ function NearbyRooms() {
   const [geoError, setGeoError] = useState(null)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState('')
+  const [userCount, setUserCount] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    getUserCount()
+      .then((n) => alive && setUserCount(n))
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -195,6 +204,14 @@ function NearbyRooms() {
             </div>
           </>
         )}
+      </div>
+
+      <div className="room-card users-stat-card">
+        <span className="room-card-name">
+          Users: <span className="heading-highlight">
+            {userCount !== null ? userCount.toLocaleString() : '…'}
+          </span>
+        </span>
       </div>
     </div>
   )
