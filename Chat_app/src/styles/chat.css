@@ -463,13 +463,13 @@
 }
 
 .bubble-row { display: flex; align-items: flex-end; gap: 8px; }
-/* Own messages sit on the LEFT (default flex-start); others on the RIGHT. */
-.bubble-row.theirs { justify-content: flex-end; }
+/* Own messages sit on the RIGHT; others on the LEFT (default flex-start). */
+.bubble-row.mine { justify-content: flex-end; }
 /* Sender photo slot. Fixed width so grouped rows (empty slot) stay aligned. */
 .bubble-avatar { width: 32px; height: 32px; flex-shrink: 0; }
-/* Others' avatar goes to the far right, after their bubble. */
-.bubble-row.theirs .bubble-avatar { order: 2; }
-.bubble-row.theirs .bubble-group { order: 1; }
+/* Own avatar goes to the far right, after the bubble. */
+.bubble-row.mine .bubble-avatar { order: 2; }
+.bubble-row.mine .bubble-group { order: 1; }
 /* A message that starts a new sender's run gets extra space above it;
    consecutive (grouped) messages stay tight, so runs read as one block. */
 .bubble-row:not(.grouped) { margin-top: 10px; }
@@ -481,7 +481,7 @@
   max-width: min(78%, 520px);
   min-width: 0;
 }
-.bubble-row.theirs .bubble-group { align-items: flex-end; }
+.bubble-row.mine .bubble-group { align-items: flex-end; }
 .bubble-sender {
   font-size: 11px;
   font-weight: 400;
@@ -514,13 +514,13 @@
   background: #323234;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom-right-radius: 6px;
+  border-bottom-left-radius: 6px;
 }
 .bubble-row.mine .bubble {
   background: #35354a;
   color: #fff;
   border: 1px solid rgba(139, 123, 255, 0.28);
-  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 .bubble-time {
   margin-left: auto;

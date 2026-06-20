@@ -11,7 +11,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_session
@@ -23,6 +23,13 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 UserDep = Annotated[User, Depends(get_current_user)]
+
+
+@router.get("/count")
+async def total_user_count(session: SessionDep) -> dict:
+    """Public endpoint — total registered accounts. No auth required."""
+    result = await session.execute(select(func.count()).select_from(User))
+    return {"count": result.scalar_one()}
 
 
 @router.get("/me", response_model=UserOut)
