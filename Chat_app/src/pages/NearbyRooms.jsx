@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { getNearbyRooms, startLocalRoom, getUserCount } from '../services/chat'
+import { getNearbyRooms, startLocalRoom, getUserCount, logout as logoutUser } from '../services/chat'
 import { getPosition } from '../services/geo'
 import StartChatBox from '../components/StartChatBox'
 import CinematicSwitch from '../components/ui/cinematic-glow-toggle'
+import { useBlockBack } from '../components/hooks/use-block-back'
 import '../styles/rooms.css'
 
 const GEO_MESSAGES = {
@@ -21,10 +22,8 @@ const MENU_ITEMS = [
   { label: 'Contact Us', path: null },
 ]
 
-function logout(navigate) {
-  ['token', 'user_id', 'email', 'display_name', 'avatar_v'].forEach(
-    (k) => localStorage.removeItem(k),
-  )
+async function logout(navigate) {
+  await logoutUser() // clears server-side presence + the local session
   navigate('/', { replace: true })
 }
 
@@ -98,6 +97,9 @@ function HamburgerMenu() {
 
 function NearbyRooms() {
   const navigate = useNavigate()
+  // This is the post-login home and the end of the back-stack: hard-block Back so
+  // it never loops into a chat room or leaves the app. Only Logout gets you out.
+  useBlockBack()
   const [rooms, setRooms] = useState(null)
   const [coords, setCoords] = useState(null)
   const [geoError, setGeoError] = useState(null)
@@ -172,7 +174,9 @@ function NearbyRooms() {
 
         {geoError ? (
           <div className="flex flex-col items-center justify-center gap-6 mt-24">
-            <p className="text-white/40 font-light text-lg">Enable location to find chats near you.</p>
+            <p className="text-white/40 font-light text-lg">
+              {GEO_MESSAGES[geoError] || 'Enable location to find chats near you.'}
+            </p>
             <CinematicSwitch onSuccess={handleLocationSuccess} onError={handleLocationError} />
           </div>
         ) : rooms === null ? (

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import Avatar from '../components/Avatar'
 import MessageList from '../components/MessageList'
-import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl } from '../services/chat'
+import DmPanel from '../components/DmPanel'
+import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl, startDm, getDmConnections } from '../services/chat'
 import ConfettiBackground from '../components/ui/confetti-background'
 import '../styles/chat.css'
 
@@ -19,12 +20,22 @@ function ChatRoom() {
   const { roomId } = useParams()
   const navigate = useNavigate()
 
-  const [room, setRoom] = useState(null)
+  // getRoom() is still fetched to validate the room exists; the value itself is
+  // not rendered, so only the setter is bound.
+  const [, setRoom] = useState(null)
   const [messages, setMessages] = useState([])
   const [loadedFor, setLoadedFor] = useState(null)
   const [draft, setDraft] = useState('')
   const [notice, setNotice] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  // The active private chat (a connection object from startDm), or null. Opening
+  // one full-screen-replaces the group stream; closing returns to the room.
+  const [dm, setDm] = useState(null)
+  // "Personal Chats" dropdown in the hamburger: all of the user's persistent
+  // connections, fetched lazily when first opened.
+  const [dmListOpen, setDmListOpen] = useState(false)
+  const [connections, setConnections] = useState([])
+  const [connectionsLoading, setConnectionsLoading] = useState(false)
 
   const myId   = localStorage.getItem('user_id') || ''
   const myName = localStorage.getItem('display_name') || localStorage.getItem('email')?.split('@')[0] || 'You'
@@ -136,6 +147,45 @@ function ChatRoom() {
     [draft],
   )
 
+  // Tap a person's name/avatar in the room → open (or reopen) the persistent
+  // private chat with them. The same pair always resolves to the same DM.
+  const handleStartDm = useCallback(
+    async (senderId) => {
+      if (!senderId || senderId === myId) return
+      try {
+        const conn = await startDm(roomId, senderId)
+        setDm(conn)
+      } catch (err) {
+        setNotice(err?.message || 'Could not open private chat.')
+      }
+    },
+    [roomId, myId],
+  )
+
+  // Toggle the Personal Chats dropdown; fetch the connection list on first open.
+  const toggleDmList = useCallback(() => {
+    const next = !dmListOpen
+    setDmListOpen(next)
+    if (next) {
+      setConnectionsLoading(true)
+      getDmConnections(roomId)
+        .then(setConnections)
+        .catch(() => setConnections([]))
+        .finally(() => setConnectionsLoading(false))
+    }
+  }, [dmListOpen, roomId])
+
+  // Open a past contact from the list — bound to the current room's geofence.
+  // Optimistically clear its unread badge (the panel marks it read on the server).
+  const openDmFromList = useCallback((conn) => {
+    setConnections((list) =>
+      list.map((x) => (x.id === conn.id ? { ...x, unreadCount: 0 } : x)),
+    )
+    setDm(conn)
+    setDmListOpen(false)
+    setMenuOpen(false)
+  }, [])
+
   return (
     <div className="chat-room">
       <ConfettiBackground />
@@ -199,17 +249,75 @@ function ChatRoom() {
                       {label}
                     </motion.button>
                   ))}
+
+                  {/* Personal Chats — dropdown of all the user's connections */}
+                  <motion.button
+                    className="chat-nav-btn chat-nav-dm-toggle"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (NAV_ITEMS.length + 1) * 0.055, duration: 0.2, ease: 'easeOut' }}
+                    onClick={toggleDmList}
+                    aria-expanded={dmListOpen}
+                  >
+                    <span>Personal Chats</span>
+                    <span className={`chat-nav-caret ${dmListOpen ? 'open' : ''}`}>▾</span>
+                  </motion.button>
+
+                  <AnimatePresence initial={false}>
+                    {dmListOpen && (
+                      <motion.div
+                        className="chat-dm-list"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      >
+                        {connectionsLoading ? (
+                          <div className="chat-dm-empty">Loading…</div>
+                        ) : connections.length === 0 ? (
+                          <div className="chat-dm-empty">
+                            No personal chats yet. Tap someone in a room to start one.
+                          </div>
+                        ) : (
+                          connections.map((c) => (
+                            <button
+                              key={c.id}
+                              className="chat-dm-item"
+                              onClick={() => openDmFromList(c)}
+                              title={c.inRange ? `${c.otherUserName} is in range` : `${c.otherUserName} is out of range`}
+                            >
+                              <Avatar
+                                name={c.otherUserName}
+                                size={28}
+                                src={c.otherHasAvatar ? avatarUrl(c.otherUserId) : undefined}
+                                online={c.inRange}
+                              />
+                              <span className="chat-dm-name">{c.otherUserName}</span>
+                              {c.unreadCount > 0 && (
+                                <span className="chat-dm-badge">{c.unreadCount}</span>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.nav>
 
-          {/* ── Chat panel (auto-shrinks as nav expands) ── */}
+          {/* ── Chat panel (auto-shrinks as nav expands). A DM full-screen
+                 replaces the group stream while open. ── */}
+          {dm ? (
+            <DmPanel key={dm.id} roomId={roomId} connection={dm} onClose={() => setDm(null)} />
+          ) : (
           <section className="chat-panel">
             <MessageList
               messages={messages}
               loading={loading}
               emptyHint="You started this room. Say hi to your neighbourhood 👋"
+              onStartDm={handleStartDm}
             />
 
             {notice && (
@@ -246,6 +354,7 @@ function ChatRoom() {
               </button>
             </form>
           </section>
+          )}
 
         </main>
       </div>

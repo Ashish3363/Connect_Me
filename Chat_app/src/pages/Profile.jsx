@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { getMe, avatarUrl } from '../services/chat'
+import { getMe, avatarUrl, logout as logoutUser } from '../services/chat'
 
 
 function Profile() {
@@ -38,13 +38,10 @@ function Profile() {
   const photo = me.hasAvatar && me.id ? avatarUrl(me.id, me.avatarUpdatedAt) : null
   const initials = name.slice(0, 2).toUpperCase()
 
-  function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user_id')
-    localStorage.removeItem('email')
-    localStorage.removeItem('display_name')
-    localStorage.removeItem('avatar_v')
-    navigate('/')
+  async function handleLogout() {
+    await logoutUser() // clears server-side presence + the local session
+    // replace: after logout, Forward shouldn't be able to re-enter the app.
+    navigate('/', { replace: true })
   }
 
   return (

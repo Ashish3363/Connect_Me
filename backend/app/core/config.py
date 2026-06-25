@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # so rooms (and empty rooms) persist indefinitely.
     room_retention_days: int = Field(30, ge=1)
     enable_room_cleanup: bool = False
+    # Nearby private-messaging relationships (nearby_connections) with no activity
+    # for this many days are reaped by the same cleanup pass. Activity = a message
+    # exchange or an in-range (re)connect (both bump last_interaction_at). Unlike
+    # room cleanup this is always on — the relationship is meant to be temporary.
+    connection_retention_days: int = Field(60, ge=1)
 
     @property
     def is_local(self) -> bool:

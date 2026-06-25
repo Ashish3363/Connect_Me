@@ -10,21 +10,47 @@ import { avatarUrl } from '../services/chat'
 // The sender's profile photo sits beside the first bubble of each run (the
 // avatar route is public; Avatar falls back to initials when there's no photo).
 // Grouped messages keep an empty avatar slot so bubbles stay aligned.
-function MessageBubble({ mine, grouped, showSender, senderId, sender, text, time }) {
+function MessageBubble({ mine, grouped, showSender, senderId, sender, text, time, onStartDm }) {
   const rowClass = `bubble-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}`
+  // Tapping another person's name/avatar opens a private chat with them. Own
+  // messages are never DM targets.
+  const canDm = !mine && !!onStartDm && !!senderId
+  const startDm = canDm ? () => onStartDm(senderId, sender) : undefined
+  const avatar = (
+    <Avatar name={sender} size={32} src={senderId ? avatarUrl(senderId) : undefined} />
+  )
   return (
     <div className={rowClass}>
       <div className="bubble-avatar">
-        {!grouped && (
-          <Avatar
-            name={sender}
-            size={32}
-            src={senderId ? avatarUrl(senderId) : undefined}
-          />
-        )}
+        {!grouped &&
+          (canDm ? (
+            <button
+              type="button"
+              className="avatar-dm-btn"
+              onClick={startDm}
+              title={`Message ${sender}`}
+              aria-label={`Message ${sender}`}
+            >
+              {avatar}
+            </button>
+          ) : (
+            avatar
+          ))}
       </div>
       <div className="bubble-group">
-        {showSender && <span className="bubble-sender">{sender}</span>}
+        {showSender &&
+          (canDm ? (
+            <button
+              type="button"
+              className="bubble-sender bubble-sender-btn"
+              onClick={startDm}
+              title={`Message ${sender}`}
+            >
+              {sender}
+            </button>
+          ) : (
+            <span className="bubble-sender">{sender}</span>
+          ))}
         <div className="bubble">
           <span className="bubble-text">{text}</span>
           <span className="bubble-time">{time}</span>

@@ -23,6 +23,7 @@ from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_room import ChatRoom
+from app.models.nearby_connection import NearbyConnection
 from app.models.private_message import PrivateMessage
 from app.models.room_message import RoomMessage
 
@@ -62,12 +63,25 @@ def is_room_inactive(
     return last_activity < room_inactivity_cutoff(now, retention_days)
 
 
+def connection_inactivity_cutoff(now: datetime, retention_days: int) -> datetime:
+    """Nearby connections idle since before this are eligible for cleanup."""
+    return now - timedelta(days=retention_days)
+
+
+def is_connection_inactive(
+    last_interaction: datetime, now: datetime, retention_days: int
+) -> bool:
+    """True once a connection has had no interaction for the retention window."""
+    return last_interaction < connection_inactivity_cutoff(now, retention_days)
+
+
 # --- DB purges -------------------------------------------------------------
 @dataclass
 class CleanupResult:
     room_messages: int = 0
     private_messages: int = 0
     rooms: int = 0
+    connections: int = 0
 
     @property
     def messages(self) -> int:
@@ -114,6 +128,24 @@ async def purge_inactive_rooms(
     return result.rowcount or 0
 
 
+async def purge_inactive_connections(
+    session: AsyncSession, *, now: datetime, retention_days: int
+) -> int:
+    """Delete nearby connections idle longer than the retention window.
+
+    The relationship is meant to be temporary: once a pair has gone
+    ``retention_days`` with no message exchange and no in-range reconnect (both
+    of which bump ``last_interaction_at``), the connection is removed. Deleting a
+    connection cascades to any lingering private messages via the FK. Returns the
+    number of connections removed. Does not commit.
+    """
+    cutoff = connection_inactivity_cutoff(now, retention_days)
+    result = await session.execute(
+        delete(NearbyConnection).where(NearbyConnection.last_interaction_at < cutoff)
+    )
+    return result.rowcount or 0
+
+
 async def run_cleanup(
     session: AsyncSession,
     *,
@@ -121,14 +153,21 @@ async def run_cleanup(
     retention_hours: int,
     enable_room_cleanup: bool = False,
     room_retention_days: int = 30,
+    connection_retention_days: int = 60,
 ) -> CleanupResult:
-    """One full cleanup pass: expire messages, optionally reap stale rooms.
+    """One full cleanup pass: expire messages, reap stale relationships, and
+    optionally reap stale rooms.
 
-    Commits once at the end. Message expiration always runs; room cleanup runs
-    only when enabled. Rooms are reaped *before* messages so that a room about
-    to be deleted doesn't also pay for a separate message scan.
+    Commits once at the end. Message expiration and connection cleanup always
+    run; room cleanup runs only when enabled. Inactive connections are reaped
+    *before* the message scan so a connection about to be deleted doesn't also
+    pay for a separate private-message scan (its messages cascade away with it).
     """
     result = CleanupResult()
+
+    result.connections = await purge_inactive_connections(
+        session, now=now, retention_days=connection_retention_days
+    )
 
     if enable_room_cleanup:
         result.rooms = await purge_inactive_rooms(
