@@ -79,7 +79,8 @@ export default function Login() {
       if (data?.user?.email) localStorage.setItem('email', data.user.email)
       localStorage.setItem('display_name', data?.user?.display_name || '')
       localStorage.setItem('avatar_v', data?.user?.avatar_updated_at || '')
-      navigate('/splash')
+      // replace: drop the login page from history so Back doesn't return to it.
+      navigate('/splash', { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

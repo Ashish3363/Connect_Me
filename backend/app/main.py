@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import auth as auth_routes
+from app.api import dm as dm_routes
 from app.api import rooms as room_routes
 from app.api import users as user_routes
 from app.core import redis as redis_client
@@ -63,6 +64,9 @@ def create_app() -> FastAPI:
     app.include_router(user_routes.router)
     app.include_router(room_routes.router)
     app.include_router(room_routes.ws_router)
+    app.include_router(dm_routes.router)
+    app.include_router(dm_routes.list_router)
+    app.include_router(dm_routes.ws_router)
     return app
 
 

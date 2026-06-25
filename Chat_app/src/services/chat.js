@@ -113,6 +113,21 @@ export async function getMe() {
   return mapUser(await apiGet('/users/me'))
 }
 
+// Log out: tell the backend first (with the still-present token) so it clears our
+// location/presence — otherwise we'd linger as "in range" with a green dot for
+// the freshness window — then drop the local session. Best-effort: we log out
+// locally even if the server call fails.
+const SESSION_KEYS = ['token', 'user_id', 'email', 'display_name', 'avatar_v']
+
+export async function logout() {
+  try {
+    await fetch(`${API}/auth/logout`, { method: 'POST', headers: authHeaders() })
+  } catch {
+    // ignore — clear the local session regardless
+  }
+  SESSION_KEYS.forEach((k) => localStorage.removeItem(k))
+}
+
 // Public avatar URL for an <img src>. `version` (avatar_updated_at) busts the
 // cache after a photo change.
 export function avatarUrl(userId, version) {
@@ -161,6 +176,56 @@ export async function getRoomMessages(roomId) {
   return msgs.map(mapMessage)
 }
 
+// ---- Nearby private messaging (DMs) ----
+// A DM is a persistent 1-to-1 connection, opened from within a room. The room
+// is the session's geofence boundary; sending only works while both people are
+// inside it. See documentation/private-messages.md.
+
+function mapDmConnection(c) {
+  return {
+    id: c.id,
+    otherUserId: c.other_user_id,
+    otherUserName: c.other_user_name,
+    otherHasAvatar: c.other_has_avatar,
+    lastInteractionAt: c.last_interaction_at,
+    inRange: !!c.in_range,
+    unreadCount: c.unread_count ?? 0,
+  }
+}
+
+// All of the caller's persistent connections ("Personal Chats"), most-recently-
+// active first. Room-agnostic — every past contact. Pass the current roomId to
+// also get each contact's `inRange` (reachable from this room right now).
+export async function getDmConnections(roomId) {
+  const q = roomId ? `?room_id=${encodeURIComponent(roomId)}` : ''
+  const conns = await apiGet(`/dm/connections${q}`)
+  return conns.map(mapDmConnection)
+}
+
+// Open (or reopen) the connection with another user met in this room. Idempotent
+// — the same pair always resolves to the same DM, in any room.
+export async function startDm(roomId, otherUserId) {
+  const conn = await apiPost(`/rooms/${roomId}/dm/start`, {
+    other_user_id: otherUserId,
+  })
+  return mapDmConnection(conn)
+}
+
+export async function getDmMessages(roomId, connectionId) {
+  const msgs = await apiGet(`/rooms/${roomId}/dm/${connectionId}/messages`)
+  return msgs.map(mapMessage)
+}
+
+// Mark every message you've received in this connection as read — clears the
+// unread badge. Room-agnostic; returns 204 (no body).
+export async function markDmRead(connectionId) {
+  const res = await fetch(`${API}/dm/${encodeURIComponent(connectionId)}/read`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw await toError(res)
+}
+
 // ---- geolocation ----
 // Resolves to { lat, lng }. `maximumAge` lets the browser serve a recent cached
 // fix (battery-friendly); we don't need high accuracy for a ~1 km geofence.
@@ -189,6 +254,9 @@ function routeFrame(frame, handlers) {
     return
   }
   switch (type) {
+    case 'peer_presence':
+      handlers.onPeerPresence?.(frame)
+      break
     case 'location_required':
       handlers.onLocationRequired?.(frame)
       break
@@ -209,18 +277,20 @@ function routeFrame(frame, handlers) {
   }
 }
 
-export function connectRoom(roomId, initialHandlers = {}) {
+function wsBaseUrl() {
+  return (
+    import.meta.env.VITE_WS_URL ||
+    `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`
+  )
+}
+
+// Shared WebSocket plumbing for both room and DM sockets: queueing pre-open
+// sends, JSON framing, the same control-frame router, and the same public
+// interface ({ setHandlers, send, sendLocation, close }).
+function openConnection(url, initialHandlers = {}) {
   let handlers = initialHandlers
   let closed = false
   const queue = []
-
-  const token = localStorage.getItem('token') || ''
-  const wsBase =
-    import.meta.env.VITE_WS_URL ||
-    `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
-
-  const url =
-    `${wsBase}/ws/rooms/${roomId}?token=${encodeURIComponent(token)}`
   const ws = new WebSocket(url)
 
   const sendRaw = (obj) => {
@@ -265,4 +335,21 @@ export function connectRoom(roomId, initialHandlers = {}) {
       }
     },
   }
+}
+
+export function connectRoom(roomId, initialHandlers = {}) {
+  const token = localStorage.getItem('token') || ''
+  const url = `${wsBaseUrl()}/ws/rooms/${roomId}?token=${encodeURIComponent(token)}`
+  return openConnection(url, initialHandlers)
+}
+
+// Realtime DM socket for one connection, scoped to a room's geofence. Same
+// interface as connectRoom; additionally emits `onPeerPresence` so the panel can
+// flip the composer when the other person enters/leaves the area.
+export function connectDm(roomId, connectionId, initialHandlers = {}) {
+  const token = localStorage.getItem('token') || ''
+  const url =
+    `${wsBaseUrl()}/ws/dm/${connectionId}` +
+    `?room_id=${encodeURIComponent(roomId)}&token=${encodeURIComponent(token)}`
+  return openConnection(url, initialHandlers)
 }

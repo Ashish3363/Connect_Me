@@ -101,6 +101,7 @@ class CleanupScheduler:
                         retention_hours=self._settings.message_retention_hours,
                         enable_room_cleanup=self._settings.enable_room_cleanup,
                         room_retention_days=self._settings.room_retention_days,
+                        connection_retention_days=self._settings.connection_retention_days,
                     )
                 finally:
                     await session.execute(
@@ -110,14 +111,18 @@ class CleanupScheduler:
             logger.exception("cleanup: run failed")
             return None
 
-        if result.messages or result.rooms:
+        if result.messages or result.rooms or result.connections:
+            extra = ""
+            if result.connections:
+                extra += f" and {result.connections} inactive connection(s)"
+            if result.rooms:
+                extra += f" and {result.rooms} inactive room(s)"
             logger.info(
-                "cleanup: deleted %d expired message(s) "
-                "(%d room, %d private)%s",
+                "cleanup: deleted %d expired message(s) (%d room, %d private)%s",
                 result.messages,
                 result.room_messages,
                 result.private_messages,
-                f" and {result.rooms} inactive room(s)" if result.rooms else "",
+                extra,
             )
         else:
             logger.info("cleanup: nothing to delete")

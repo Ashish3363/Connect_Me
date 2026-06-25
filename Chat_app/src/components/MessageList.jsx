@@ -9,7 +9,7 @@ const NEAR_BOTTOM_PX = 120
 
 // The scrollable message stream. Owns two concerns so <ChatRoom> doesn't have
 // to: grouping consecutive messages (via groupMessages) and scroll behavior.
-function MessageList({ messages, loading, emptyHint }) {
+function MessageList({ messages, loading, emptyHint, onStartDm }) {
   const scrollRef = useRef(null)
   const prevLenRef = useRef(0)
   const rows = useMemo(() => groupMessages(messages), [messages])
@@ -52,6 +52,7 @@ function MessageList({ messages, loading, emptyHint }) {
             sender={row.sender}
             text={row.text}
             time={row.time}
+            onStartDm={onStartDm}
           />
         ))
       )}

@@ -28,6 +28,7 @@ what changed and when.
 | WhatsApp-style chat message layout | [chat-message-layout.md](chat-message-layout.md) | Implemented | 2026-06-15 |
 | User profile & edit (name, photo, password) | [user-profile.md](user-profile.md) | Implemented | 2026-06-15 |
 | Production deployment (Neon + Render + Vercel) | [deployment.md](deployment.md) | Implemented (code-side) | 2026-06-16 |
+| Nearby private messaging (in-room 1-on-1, two-sided proximity gate) | [private-messages.md](private-messages.md) | Implemented | 2026-06-23 |
 
 ## Project layout (quick reference)
 

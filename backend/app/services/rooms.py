@@ -80,6 +80,21 @@ async def update_user_location(
     )
 
 
+async def clear_user_location(session: AsyncSession, *, user_id: uuid.UUID) -> None:
+    """Forget the user's last fix so they immediately read as offline / out of
+    range for presence checks (green dot, in-range, send gate). Called on logout —
+    otherwise a logged-out user lingers as "present" for the freshness window."""
+    await session.execute(
+        update(User)
+        .where(User.id == user_id)
+        .values(
+            current_location=None,
+            current_geohash=None,
+            location_updated_at=None,
+        )
+    )
+
+
 async def create_or_join_room(
     session: AsyncSession, *, lat: float, lng: float
 ) -> ChatRoom:

@@ -153,6 +153,75 @@
   color: #fff;
 }
 
+/* Personal Chats dropdown (in the hamburger nav) */
+.chat-nav-dm-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chat-nav-caret {
+  font-size: 10px;
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+.chat-nav-caret.open { transform: rotate(180deg); }
+.chat-dm-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding-left: 6px;
+}
+.chat-dm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.chat-dm-item:hover { background: rgba(255, 255, 255, 0.08); }
+.chat-dm-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-dm-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-grad, #8b7bff);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(139, 123, 255, 0.45);
+}
+.chat-dm-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.4);
+}
+
 /* --- Sidebar (people in room) --- */
 .chat-sidebar {
   width: 260px;
@@ -808,7 +877,16 @@
 .ghost-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ===== Edit profile form ===== */
-.avatar-img { object-fit: cover; border-radius: 50%; display: block; }
+/* width/height:100% override Tailwind preflight's `img { height: auto }`, which
+   would otherwise render a non-square source photo at its natural aspect ratio
+   (an oval). Filling the square box lets object-fit:cover crop it to a circle. */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
 .edit-card {
   border-radius: var(--radius);
   padding: 28px 26px;
@@ -876,6 +954,77 @@
   color: #38e0a0;
 }
 .edit-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+/* ===== DM (nearby private messaging) ===== */
+/* The DM view reuses .chat-panel / .chat-scroll / .chat-composer / MessageList,
+   so bubbles, fonts and spacing are identical to the room. Only the header and
+   the out-of-range banner are DM-specific. */
+.dm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #242426;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+}
+.dm-back {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0 4px;
+  transition: transform 0.12s;
+}
+.dm-back:hover { transform: translateX(-2px); }
+.dm-peer { display: flex; flex-direction: column; line-height: 1.2; flex: 1; min-width: 0; }
+.dm-peer-name {
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dm-peer-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.4);
+}
+.dm-banner {
+  margin: 0 18px 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255, 176, 32, 0.14);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  color: #fbbf24;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+/* Tap-to-DM affordance on other people's messages (name + avatar). */
+.avatar-dm-btn,
+.bubble-sender-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.bubble-sender-btn { text-align: left; }
+.bubble-sender-btn:hover { color: rgba(255, 255, 255, 0.75); text-decoration: underline; }
+.avatar-dm-btn { display: inline-flex; border-radius: 50%; transition: transform 0.12s; }
+.avatar-dm-btn:hover { transform: scale(1.08); }
 
 /* ===== Responsive ===== */
 @media (max-width: 1100px) {

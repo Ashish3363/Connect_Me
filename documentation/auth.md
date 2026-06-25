@@ -1,7 +1,7 @@
 # Authentication (Login / Register UI)
 
 **Status:** Implemented
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-24
 
 Email + password authentication. The backend (built earlier, 2026-06-07) issues
 a long-lived JWT; this feature covers the **frontend** UI and its wiring, plus
@@ -55,6 +55,24 @@ Logout (Profile page) clears both and returns to `/`.
 ---
 
 ## Changelog
+
+### 2026-06-24 — Back button no longer exposes the login page
+- **Symptom:** while logged in (e.g. on "Find people near you"), browser Back
+  landed on the login page, and Forward re-entered the app without re-auth.
+- **Cause:** the `/login` (`/`) entry stayed in history after login, and the
+  login route had no guard, so an authenticated user could navigate back onto it.
+- **Fix:** added `GuestRoute` (mirror of `ProtectedRoute`) — when a token exists,
+  `/` redirects to `/rooms`, so Back can never surface login to an authenticated
+  user. Login now navigates with `replace` (drops `/login` from history) and
+  Profile logout navigates with `replace`. The only path to login is an explicit
+  logout (which clears the token).
+- **Hard-block Back on `/rooms`:** "Find people near you" is the post-login home
+  and the end of the back-stack. The `useBlockBack` hook
+  (`components/hooks/use-block-back.js`, used in `NearbyRooms`) pins a history
+  entry and re-pins on every `popstate`, so the browser Back button is always a
+  no-op there — it can't loop into a chat room or leave the app. Opening a room
+  (a forward navigation) unmounts the page and releases the block; returning
+  re-arms it. This replaced the earlier rooms↔chat-room Back loop.
 
 ### 2026-06-10
 - Built the login/register UI (liquid glass), wired to the real auth backend.
