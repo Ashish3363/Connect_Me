@@ -1,0 +1,186 @@
+/* Contact page — same language as the About / Rooms screens: thin low-opacity
+   headings with a solid-white .heading-highlight keyword, glass cards with a
+   staggered cardIn entrance, hover-lift + purple glow, the app's signature
+   easing. */
+
+.contact-stage {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  padding: clamp(56px, 9vw, 88px) clamp(18px, 5vw, 56px) 64px;
+}
+
+.contact-wrap {
+  width: 100%;
+  max-width: 820px;
+  margin: auto 0;
+  animation: contactFadeUp 0.7s ease both;
+}
+
+/* ---- Heading (thin + highlighted keyword) ---- */
+.contact-header {
+  text-align: center;
+  margin-bottom: clamp(36px, 6vw, 56px);
+}
+.contact-header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.4);
+}
+.contact-header p {
+  margin: 14px 0 0;
+  color: var(--text-dim);
+  font-size: 0.98rem;
+}
+.contact-stage .heading-highlight {
+  color: #fff;
+}
+
+/* ---- Cards ---- */
+.contact-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .contact-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.contact-card {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  animation: contactCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.contact-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(140deg, var(--glass-hi), transparent 55%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.contact-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+}
+.contact-card-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.contact-card-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border);
+  color: var(--accent);
+}
+.contact-card-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.contact-card-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.contact-card-value {
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.contact-card-value:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Copy button (email) */
+.contact-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.contact-copy:hover {
+  background: var(--glass);
+  color: var(--text);
+}
+
+/* ---- Back button (matches in-app fixed back buttons) ---- */
+.contact-back {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition: background 0.2s ease;
+}
+.contact-back:hover {
+  background: var(--glass-strong);
+}
+
+@keyframes contactCardIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes contactFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-wrap,
+  .contact-card { animation: none; }
+}

@@ -205,14 +205,14 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--accent-grad, #8b7bff);
-  color: #fff;
+  background: #fff;
+  color: #000;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(139, 123, 255, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 .chat-dm-empty {
   padding: 10px 12px;
@@ -464,6 +464,11 @@
   box-shadow: 0 0 0 0 rgba(56, 224, 160, 0.6);
   animation: livePulse 1.8s infinite;
   flex-shrink: 0;
+}
+/* In the DM header the dot is a static green indicator — no pulsing. */
+.dm-peer-status .dot-live {
+  box-shadow: none;
+  animation: none;
 }
 @keyframes livePulse {
   0% { box-shadow: 0 0 0 0 rgba(56, 224, 160, 0.6); }
