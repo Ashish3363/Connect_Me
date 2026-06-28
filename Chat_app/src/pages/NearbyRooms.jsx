@@ -18,8 +18,8 @@ const GEO_MESSAGES = {
 const MENU_ITEMS = [
   { label: 'Profile',    path: '/profile' },
   { label: 'Settings',   path: '/settings' },
-  { label: 'About Us',   path: null },
-  { label: 'Contact Us', path: null },
+  { label: 'About our app', path: '/about' },
+  { label: 'Contact Us', path: '/contact' },
 ]
 
 async function logout(navigate) {

@@ -156,7 +156,7 @@ function DmPanel({ roomId, connection, onClose }) {
         : notice
 
   const statusText = canSend
-    ? 'In range now'
+    ? ''
     : peerPresent === false
       ? `${otherUserName} is away`
       : selfInside === false

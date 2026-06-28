@@ -1,0 +1,221 @@
+/* About page — mirrors the Rooms aesthetic: thin low-opacity headings with a
+   solid-white .heading-highlight keyword, glass cards with a staggered cardIn
+   entrance, hover-lift + purple glow, and the app's signature easing. */
+
+.about-stage {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-y: auto;
+  padding: clamp(56px, 9vw, 88px) clamp(18px, 5vw, 56px) 64px;
+}
+
+.about-wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  animation: aboutFadeUp 0.7s ease both;
+}
+
+/* ---- Headings (thin + highlighted keyword) ---- */
+.about-header {
+  text-align: center;
+  margin-bottom: clamp(40px, 7vw, 72px);
+}
+.about-header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.4);
+}
+.about-header p {
+  margin: 14px 0 0;
+  color: var(--text-dim);
+  font-size: 0.98rem;
+}
+.about-section {
+  margin-bottom: clamp(40px, 7vw, 64px);
+}
+.about-section:last-child {
+  margin-bottom: 0;
+}
+.about-section-title {
+  margin: 0 0 20px;
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.4);
+}
+.about-stage .heading-highlight {
+  color: #fff;
+}
+
+/* ---- Overview card ---- */
+.about-overview {
+  border-radius: var(--radius);
+  padding: clamp(22px, 4vw, 32px);
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text-dim);
+  animation: aboutCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.about-overview:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+}
+
+/* ---- Highlight cards ---- */
+.about-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .about-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.about-card {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  animation: aboutCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.about-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(140deg, var(--glass-hi), transparent 55%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.about-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+}
+.about-card-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.about-card-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border);
+  color: var(--accent);
+}
+.about-card-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.about-card-body {
+  position: relative;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+/* ---- FAQ accordion ---- */
+.about-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.about-faq-item {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  animation: aboutCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.about-faq-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 18px 44px rgba(139, 123, 255, 0.4), var(--glass-inset);
+}
+.about-faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.about-faq-icon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+.about-faq-a {
+  padding: 0 20px 18px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+/* ---- Back button (matches in-app fixed back buttons) ---- */
+.about-back {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition: background 0.2s ease;
+}
+.about-back:hover {
+  background: var(--glass-strong);
+}
+
+@keyframes aboutCardIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes aboutFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-wrap,
+  .about-overview,
+  .about-card,
+  .about-faq-item { animation: none; }
+}

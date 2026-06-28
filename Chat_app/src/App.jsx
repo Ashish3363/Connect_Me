@@ -14,6 +14,8 @@ const ChatRoom = lazy(() => import('./pages/ChatRoom.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const EditProfile = lazy(() => import('./pages/EditProfile.jsx'))
+const Contact = lazy(() => import('./pages/Contact.jsx'))
+const About = lazy(() => import('./pages/About.jsx'))
 
 function App() {
   return (
@@ -77,6 +79,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
