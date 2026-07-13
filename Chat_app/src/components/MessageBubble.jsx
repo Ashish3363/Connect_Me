@@ -1,5 +1,6 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import Avatar from './Avatar'
+import AuthImage from './AuthImage'
 import { avatarUrl } from '../services/chat'
 
 // A single chat bubble. Purely presentational: every "which side / show name /
@@ -10,8 +11,10 @@ import { avatarUrl } from '../services/chat'
 // The sender's profile photo sits beside the first bubble of each run (the
 // avatar route is public; Avatar falls back to initials when there's no photo).
 // Grouped messages keep an empty avatar slot so bubbles stay aligned.
-function MessageBubble({ mine, grouped, showSender, senderId, sender, text, time, onStartDm }) {
+function MessageBubble({ mine, grouped, showSender, senderId, sender, kind, text, photoUrl, time, onStartDm }) {
   const rowClass = `bubble-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}`
+  const isPhoto = kind === 'photo' && !!photoUrl
+  const [lightbox, setLightbox] = useState(false)
   // Tapping another person's name/avatar opens a private chat with them. Own
   // messages are never DM targets.
   const canDm = !mine && !!onStartDm && !!senderId
@@ -51,11 +54,33 @@ function MessageBubble({ mine, grouped, showSender, senderId, sender, text, time
           ) : (
             <span className="bubble-sender">{sender}</span>
           ))}
-        <div className="bubble">
-          <span className="bubble-text">{text}</span>
-          <span className="bubble-time">{time}</span>
-        </div>
+        {isPhoto ? (
+          <div className="bubble bubble-photo">
+            <AuthImage
+              photoUrl={photoUrl}
+              alt={`Photo from ${sender || 'you'}`}
+              onClick={() => setLightbox(true)}
+            />
+            <span className="bubble-time bubble-time-photo">{time}</span>
+          </div>
+        ) : (
+          <div className="bubble">
+            <span className="bubble-text">{text}</span>
+            <span className="bubble-time">{time}</span>
+          </div>
+        )}
       </div>
+
+      {isPhoto && lightbox && (
+        <div
+          className="photo-lightbox"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightbox(false)}
+        >
+          <AuthImage photoUrl={photoUrl} alt="Photo" className="photo-lightbox-img" />
+        </div>
+      )}
     </div>
   )
 }

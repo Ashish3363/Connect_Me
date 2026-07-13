@@ -2,6 +2,7 @@
 
 from app.models.app_setting import AppSetting
 from app.models.chat_room import ChatRoom
+from app.models.message_photo import MessagePhoto
 from app.models.moderation import UserModeration
 from app.models.nearby_connection import NearbyConnection
 from app.models.private_message import PrivateMessage
@@ -11,6 +12,7 @@ from app.models.user import User
 __all__ = [
     "AppSetting",
     "ChatRoom",
+    "MessagePhoto",
     "NearbyConnection",
     "PrivateMessage",
     "RoomMessage",

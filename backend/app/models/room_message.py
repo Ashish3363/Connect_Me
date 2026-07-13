@@ -2,7 +2,7 @@ from datetime import datetime
 
 import uuid
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Text, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,7 +23,13 @@ class RoomMessage(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 'text' | 'photo'. A photo message has no text (``content`` is NULL) and owns
+    # a row in ``message_photos``. Plain string + app-level check (no PG enum).
+    kind: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="text"
+    )
+    # NULL for photo messages; the text body for text messages.
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Creation timestamp. Also the basis for 24h message expiration: the
     # retrieval API filters on it and the cleanup job deletes rows older than
     # the retention window. See documentation/message-expiration.md.

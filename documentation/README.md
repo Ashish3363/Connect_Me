@@ -29,6 +29,7 @@ what changed and when.
 | User profile & edit (name, photo, password) | [user-profile.md](user-profile.md) | Implemented | 2026-06-15 |
 | Production deployment (Neon + Render + Vercel) | [deployment.md](deployment.md) | Implemented (code-side) | 2026-06-16 |
 | Nearby private messaging (in-room 1-on-1, two-sided proximity gate) | [private-messages.md](private-messages.md) | Implemented | 2026-06-23 |
+| Photo messages (rooms + DMs, 24h TTL, location-gated, sanitized) | [photo-messages-plan-2026-07-12.md](photo-messages-plan-2026-07-12.md) | Implemented | 2026-07-12 |
 
 ## Project layout (quick reference)
 

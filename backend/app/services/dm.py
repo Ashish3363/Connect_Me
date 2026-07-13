@@ -16,6 +16,7 @@ from sqlalchemy import and_, case, cast, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.message_photo import MessagePhoto
 from app.models.nearby_connection import NearbyConnection
 from app.models.private_message import PrivateMessage
 from app.models.user import User
@@ -186,9 +187,14 @@ async def list_dm_messages(
     cleanup job deletes them — identical to the room message query."""
     stmt = (
         select(
-            PrivateMessage, User.display_name, User.username, User.email
+            PrivateMessage,
+            User.display_name,
+            User.username,
+            User.email,
+            MessagePhoto.id,
         )
         .join(User, User.id == PrivateMessage.sender_id)
+        .outerjoin(MessagePhoto, MessagePhoto.private_message_id == PrivateMessage.id)
         .where(PrivateMessage.connection_id == connection_id)
         .order_by(PrivateMessage.sent_at.desc(), PrivateMessage.id.desc())
         .limit(limit)

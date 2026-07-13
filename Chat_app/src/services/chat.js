@@ -69,7 +69,11 @@ function mapMessage(raw) {
     senderId: raw.sender_id, // used to load the sender's avatar
     from: raw.sender_id === myId ? 'me' : 'them',
     sender: raw.sender_name,
+    // A message is either text or a single photo (kind discriminates). Photos
+    // carry a serving path in photo_url and no text.
+    kind: raw.kind || 'text',
     text: raw.content,
+    photoUrl: raw.photo_url || null,
     time: formatTime(raw.sent_at),
   }
 }

@@ -10,29 +10,15 @@ from __future__ import annotations
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# `sniff_image_type` / `ALLOWED_IMAGE_TYPES` now live in app.core.images (shared
+# with chat photo uploads). Re-exported here so existing avatar callers/tests
+# keep importing them from this module unchanged.
+from app.core.images import ALLOWED_IMAGE_TYPES, sniff_image_type  # noqa: F401
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 
 # 2 MB cap on a stored avatar (MVP — keeps inline DB storage reasonable).
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
-
-# Allowed image types, keyed by canonical content-type.
-ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
-
-
-def sniff_image_type(data: bytes) -> str | None:
-    """Return the canonical content-type from the file's magic bytes.
-
-    Only JPEG/PNG/WEBP are recognised; anything else returns None. We trust the
-    bytes, not the client-supplied content-type header.
-    """
-    if data[:3] == b"\xff\xd8\xff":
-        return "image/jpeg"
-    if data[:8] == b"\x89PNG\r\n\x1a\n":
-        return "image/png"
-    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "image/webp"
-    return None
 
 
 async def update_display_name(

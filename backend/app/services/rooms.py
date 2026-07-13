@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import settings_repo
 from app.core.geo import encode_geohash, geohash_center
 from app.models.chat_room import ChatRoom
+from app.models.message_photo import MessagePhoto
 from app.models.room_message import RoomMessage
 from app.models.user import User
 
@@ -171,8 +172,15 @@ async def list_messages(
     time filter, so it stays correct as expired rows drop out.
     """
     stmt = (
-        select(RoomMessage, User.display_name, User.username, User.email)
+        select(
+            RoomMessage,
+            User.display_name,
+            User.username,
+            User.email,
+            MessagePhoto.id,
+        )
         .join(User, User.id == RoomMessage.sender_id)
+        .outerjoin(MessagePhoto, MessagePhoto.room_message_id == RoomMessage.id)
         .where(RoomMessage.room_id == room_id)
         .order_by(RoomMessage.sent_at.desc(), RoomMessage.id.desc())
         .limit(limit)

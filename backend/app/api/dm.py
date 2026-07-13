@@ -19,6 +19,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -26,6 +27,7 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_session
+from app.api.photos import read_photo_body
 from app.core import settings_repo
 from app.core.config import get_settings
 from app.core.geo import encode_geohash, geohash_center
@@ -37,6 +39,7 @@ from app.realtime import manager
 from app.schemas.dm import DmConnectionOut, DmMessageOut, SendDmIn, StartDmIn
 from app.services import auth as auth_service
 from app.services import dm as dm_service
+from app.services import photos as photos_service
 from app.services import rooms as rooms_service
 from app.services.cleanup import expiry_cutoff
 from app.services.location import (
@@ -81,13 +84,15 @@ def _display(user: User) -> str:
     )
 
 
-def _message_out(msg, sender_name: str) -> DmMessageOut:
+def _message_out(msg, sender_name: str, photo_id=None) -> DmMessageOut:
     return DmMessageOut(
         id=msg.id,
         connection_id=msg.connection_id,
         sender_id=msg.sender_id,
         sender_name=sender_name,
+        kind=msg.kind,
         content=msg.content,
+        photo_url=photos_service.photo_url(photo_id) if photo_id else None,
         sent_at=msg.sent_at,
     )
 
@@ -253,21 +258,21 @@ async def get_dm_messages(
         session, connection_id=connection_id, limit=limit, since=cutoff
     )
     return [
-        _message_out(msg, rooms_service.sender_display(dn, un, em))
-        for (msg, dn, un, em) in rows
+        _message_out(msg, rooms_service.sender_display(dn, un, em), photo_id)
+        for (msg, dn, un, em, photo_id) in rows
     ]
 
 
-@router.post("/{connection_id}/messages", response_model=DmMessageOut)
-async def post_dm_message(
-    room_id: uuid.UUID,
-    connection_id: uuid.UUID,
-    body: SendDmIn,
-    user: UserDep,
-    session: SessionDep,
-) -> DmMessageOut:
-    """REST fallback for the WebSocket send path. Runs the full two-sided gate."""
-    conn = await _load_participant_connection(session, connection_id, user.id)
+async def _enforce_dm_send_gate(
+    session: AsyncSession, *, conn, user: User, room_id: uuid.UUID
+) -> None:
+    """The full two-sided DM send gate, shared by the text and photo REST paths.
+
+    Verifies the room exists, the sender has a fresh fix (428) inside the room's
+    geofence (403), the recipient is present in that area (409), and the shared
+    per-user rate limit isn't exceeded (429). Raises on any failure; returns None
+    when the send is permitted.
+    """
     room = await rooms_service.get_room(session, room_id)
     if room is None:
         raise HTTPException(
@@ -328,11 +333,52 @@ async def post_dm_message(
             headers={"Retry-After": str(retry_after)},
         )
 
+
+@router.post("/{connection_id}/messages", response_model=DmMessageOut)
+async def post_dm_message(
+    room_id: uuid.UUID,
+    connection_id: uuid.UUID,
+    body: SendDmIn,
+    user: UserDep,
+    session: SessionDep,
+) -> DmMessageOut:
+    """REST fallback for the WebSocket send path. Runs the full two-sided gate."""
+    conn = await _load_participant_connection(session, connection_id, user.id)
+    await _enforce_dm_send_gate(session, conn=conn, user=user, room_id=room_id)
+
     msg = await dm_service.create_dm_message(
         session, connection_id=connection_id, sender_id=user.id, content=body.content
     )
     await session.commit()
     out = _message_out(msg, _display(user))
+    await manager.broadcast(_channel(connection_id), out.model_dump(mode="json"))
+    return out
+
+
+@router.post("/{connection_id}/messages/photo", response_model=DmMessageOut)
+async def post_dm_photo(
+    room_id: uuid.UUID,
+    connection_id: uuid.UUID,
+    request: Request,
+    user: UserDep,
+    session: SessionDep,
+) -> DmMessageOut:
+    """Send a single photo in a DM. Held to the same two-sided proximity gate as
+    DM text (both people fresh + in range). The image is sanitized (EXIF/GPS
+    stripped, re-encoded) before storage."""
+    conn = await _load_participant_connection(session, connection_id, user.id)
+    await _enforce_dm_send_gate(session, conn=conn, user=user, room_id=room_id)
+
+    data, content_type = await read_photo_body(request)
+    msg, photo = await photos_service.create_dm_photo_message(
+        session,
+        connection_id=connection_id,
+        sender_id=user.id,
+        data=data,
+        content_type=content_type,
+    )
+    await session.commit()
+    out = _message_out(msg, _display(user), photo.id)
     await manager.broadcast(_channel(connection_id), out.model_dump(mode="json"))
     return out
 

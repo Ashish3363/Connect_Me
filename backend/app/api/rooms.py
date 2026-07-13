@@ -13,6 +13,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -20,6 +21,7 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_session
+from app.api.photos import read_photo_body
 from app.core import settings_repo
 from app.core.config import get_settings
 from app.core.geo import encode_geohash, geohash_center
@@ -37,6 +39,8 @@ from app.schemas.room import (
     StartRoomIn,
 )
 from app.services import auth as auth_service
+from app.services import dm as dm_service
+from app.services import photos as photos_service
 from app.services import rooms as rooms_service
 from app.services.cleanup import expiry_cutoff
 from app.services.location import (
@@ -111,13 +115,15 @@ def _room_out(room, distance_m: float, members: int) -> RoomOut:
     )
 
 
-def _message_out(msg, sender_name: str) -> RoomMessageOut:
+def _message_out(msg, sender_name: str, photo_id=None) -> RoomMessageOut:
     return RoomMessageOut(
         id=msg.id,
         room_id=msg.room_id,
         sender_id=msg.sender_id,
         sender_name=sender_name,
+        kind=msg.kind,
         content=msg.content,
+        photo_url=photos_service.photo_url(photo_id) if photo_id else None,
         sent_at=msg.sent_at,
     )
 
@@ -192,8 +198,8 @@ async def get_messages(
         session, room_id=room_id, limit=limit, since=cutoff
     )
     return [
-        _message_out(msg, rooms_service.sender_display(dn, un, em))
-        for (msg, dn, un, em) in rows
+        _message_out(msg, rooms_service.sender_display(dn, un, em), photo_id)
+        for (msg, dn, un, em, photo_id) in rows
     ]
 
 
@@ -218,6 +224,59 @@ async def post_message(
     await session.commit()
     out = _message_out(
         msg, rooms_service.sender_display(user.display_name, user.username, user.email)
+    )
+    await manager.broadcast(str(room_id), out.model_dump(mode="json"))
+    return out
+
+
+@router.post("/{room_id}/messages/photo", response_model=RoomMessageOut)
+async def post_room_photo(
+    room_id: uuid.UUID, request: Request, user: UserDep, session: SessionDep
+) -> RoomMessageOut:
+    """Send a single photo to a room.
+
+    Gated exactly like a text message plus an explicit in-range check: the caller
+    must have a fresh fix (428 otherwise) AND be inside the room's geofence (403
+    ``out_of_range`` otherwise). The upload is sanitized — decoded and re-encoded,
+    stripping EXIF/GPS metadata — before it is stored.
+    """
+    room = await rooms_service.get_room(session, room_id)
+    if room is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="room not found")
+
+    # Location gate: fresh, then physically inside the room's area.
+    await _require_fresh_location(session, user)
+    radius_m = await rooms_service.geofence_radius_m(session)
+    center_lat, center_lng = geohash_center(room.geohash)
+    if not await dm_service.user_within_geofence(
+        session,
+        user_id=user.id,
+        center_lat=center_lat,
+        center_lng=center_lng,
+        radius_m=radius_m,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "out_of_range", "message": "You're outside this room's area."},
+        )
+
+    retry_after = await _check_send_rate(session, user.id)
+    if retry_after:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="message rate limit exceeded",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    data, content_type = await read_photo_body(request)
+    msg, photo = await photos_service.create_room_photo_message(
+        session, room_id=room_id, sender_id=user.id, data=data, content_type=content_type
+    )
+    await session.commit()
+    out = _message_out(
+        msg,
+        rooms_service.sender_display(user.display_name, user.username, user.email),
+        photo.id,
     )
     await manager.broadcast(str(room_id), out.model_dump(mode="json"))
     return out

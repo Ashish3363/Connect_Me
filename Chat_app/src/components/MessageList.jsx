@@ -50,7 +50,9 @@ function MessageList({ messages, loading, emptyHint, onStartDm }) {
             showSender={row.showSender}
             senderId={row.senderId}
             sender={row.sender}
+            kind={row.kind}
             text={row.text}
+            photoUrl={row.photoUrl}
             time={row.time}
             onStartDm={onStartDm}
           />
