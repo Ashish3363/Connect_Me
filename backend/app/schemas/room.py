@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,7 +28,12 @@ class RoomMessageOut(BaseModel):
     room_id: uuid.UUID
     sender_id: uuid.UUID
     sender_name: str
-    content: str
+    kind: Literal["text", "photo"] = "text"
+    # Text body for text messages; None for photos.
+    content: str | None = None
+    # Backend-relative path to the image for photo messages (e.g.
+    # ``/photos/<token>``); None for text. The client fetches it auth-gated.
+    photo_url: str | None = None
     sent_at: datetime
 
 

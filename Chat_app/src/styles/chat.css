@@ -669,6 +669,137 @@
 .send-btn:active { transform: scale(0.92); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+/* ── Composer "+" attach button (WhatsApp-style, rotates to ×) ── */
+.attach { position: relative; flex-shrink: 0; }
+.attach-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1c1c1e;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* the rotate is the signature interaction: + spins into × on open */
+  transition: transform 0.2s ease, background 0.2s, color 0.2s, opacity 0.2s;
+}
+.attach-btn:hover { background: #242428; color: #fff; }
+.attach-btn.open {
+  transform: rotate(45deg);
+  background: rgba(139, 123, 255, 0.9);
+  color: #fff;
+  border-color: transparent;
+}
+.attach-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* pop-up menu, anchored above the button */
+.attach-menu {
+  position: absolute;
+  bottom: 56px;
+  left: 0;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #2b2b2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  animation: attachMenuIn 0.16s ease;
+}
+@keyframes attachMenuIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.attach-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.attach-menu-item:hover { background: rgba(139, 123, 255, 0.18); }
+.attach-menu-item svg { color: rgba(139, 123, 255, 0.95); }
+
+/* ── Photo message bubbles ── */
+.bubble-photo { padding: 4px; position: relative; }
+.photo-bubble {
+  display: block;
+  max-width: min(260px, 62vw);
+  max-height: 340px;
+  width: auto;
+  height: auto;
+  border-radius: 16px;
+  object-fit: cover;
+  cursor: pointer;
+}
+.photo-loading {
+  width: 200px;
+  height: 150px;
+  border-radius: 16px;
+  background: linear-gradient(100deg, #2a2a2d 30%, #34343a 50%, #2a2a2d 70%);
+  background-size: 200% 100%;
+  animation: photoShimmer 1.2s ease-in-out infinite;
+}
+@keyframes photoShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.photo-broken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 90px;
+  border-radius: 16px;
+  background: #2a2a2d;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  cursor: default;
+}
+/* timestamp overlaid on the photo's bottom-right */
+.bubble-time-photo {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  margin: 0;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* full-screen lightbox on tap */
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.85);
+  cursor: zoom-out;
+  animation: attachMenuIn 0.15s ease;
+}
+.photo-lightbox-img {
+  max-width: 92vw;
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  object-fit: contain;
+  cursor: default;
+}
+
 /* Footer inside the chat container — no outer rounding or margin */
 .chat-container .footer-nav {
   margin: 0;

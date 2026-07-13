@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Avatar from './Avatar'
 import MessageList from './MessageList'
+import AttachMenu from './AttachMenu'
 import { getDmMessages, connectDm, getCurrentPosition, avatarUrl, markDmRead } from '../services/chat'
+import { uploadDmPhoto } from '../services/photos'
+import { useSendPhoto } from '../hooks/useSendPhoto'
+import { validatePhotoFile } from '../types/messages'
 
 const LOCATION_REFRESH_MS = 4 * 60 * 1000
 
@@ -145,6 +149,24 @@ function DmPanel({ roomId, connection, onClose }) {
     [draft, canSend],
   )
 
+  // Photo send over REST; the socket broadcast delivers it back. The two-sided
+  // gate is enforced server-side, and the + button is disabled unless canSend.
+  const sendPhoto = useSendPhoto((file) => uploadDmPhoto(roomId, connectionId, file))
+  const handlePickImage = useCallback(
+    (file) => {
+      const err = validatePhotoFile(file)
+      if (err) {
+        setNotice(err)
+        return
+      }
+      setNotice(null)
+      sendPhoto.mutate(file, {
+        onError: (e) => setNotice(e?.message || 'Could not send photo.'),
+      })
+    },
+    [sendPhoto],
+  )
+
   // Only show an out-of-range banner once we KNOW someone is out (=== false),
   // never while presence is still unknown (null) — that was the false
   // "you're outside" flash on open.
@@ -196,10 +218,18 @@ function DmPanel({ roomId, connection, onClose }) {
       )}
 
       <form className="chat-composer" onSubmit={handleSend}>
+        <AttachMenu
+          onPickImage={handlePickImage}
+          disabled={!canSend || sendPhoto.isPending}
+        />
         <input
           type="text"
           placeholder={
-            canSend ? `Message ${otherUserName}…` : 'Messaging paused — both must be in the area'
+            sendPhoto.isPending
+              ? 'Sending photo…'
+              : canSend
+                ? `Message ${otherUserName}…`
+                : 'Messaging paused — both must be in the area'
           }
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

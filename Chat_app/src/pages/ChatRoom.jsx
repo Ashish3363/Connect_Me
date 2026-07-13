@@ -4,7 +4,11 @@ import { motion, AnimatePresence } from 'motion/react'
 import Avatar from '../components/Avatar'
 import MessageList from '../components/MessageList'
 import DmPanel from '../components/DmPanel'
+import AttachMenu from '../components/AttachMenu'
 import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl, startDm, getDmConnections } from '../services/chat'
+import { uploadRoomPhoto } from '../services/photos'
+import { useSendPhoto } from '../hooks/useSendPhoto'
+import { validatePhotoFile } from '../types/messages'
 import ConfettiBackground from '../components/ui/confetti-background'
 import '../styles/chat.css'
 
@@ -145,6 +149,24 @@ function ChatRoom() {
       connRef.current?.send(text)
     },
     [draft],
+  )
+
+  // Photo send: upload over REST; the socket broadcast then delivers the rendered
+  // message back to us (like a text send). Server enforces the same location gate.
+  const sendPhoto = useSendPhoto((file) => uploadRoomPhoto(roomId, file))
+  const handlePickImage = useCallback(
+    (file) => {
+      const err = validatePhotoFile(file)
+      if (err) {
+        setNotice(err)
+        return
+      }
+      setNotice(null)
+      sendPhoto.mutate(file, {
+        onError: (e) => setNotice(e?.message || 'Could not send photo.'),
+      })
+    },
+    [sendPhoto],
   )
 
   // Tap a person's name/avatar in the room → open (or reopen) the persistent
@@ -339,9 +361,10 @@ function ChatRoom() {
             )}
 
             <form className="chat-composer" onSubmit={handleSend}>
+              <AttachMenu onPickImage={handlePickImage} disabled={sendPhoto.isPending} />
               <input
                 type="text"
-                placeholder="Message your neighbourhood…"
+                placeholder={sendPhoto.isPending ? 'Sending photo…' : 'Message your neighbourhood…'}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 aria-label="Message"
