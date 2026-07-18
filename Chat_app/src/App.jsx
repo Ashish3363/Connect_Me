@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
 import { MouseGlow } from './components/ui/mouse-glow'
+import mixpanel from './mixpanel'
 
 // Login ships in the main bundle (first paint); everything behind auth is
 // code-split so the initial download stays small.
@@ -18,6 +19,33 @@ const Contact = lazy(() => import('./pages/Contact.jsx'))
 const About = lazy(() => import('./pages/About.jsx'))
 
 function App() {
+  const location = useLocation()
+
+  useEffect(() => {
+    mixpanel.track('Page Viewed', {
+      path: location.pathname,
+      search: location.search,
+    })
+  }, [location])
+
+  useEffect(() => {
+    mixpanel.track('App Opened')
+    mixpanel.track('Session Started')
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        mixpanel.track('User Became Inactive')
+      } else {
+        mixpanel.track('User Became Active')
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   return (
     <>
       <MouseGlow />

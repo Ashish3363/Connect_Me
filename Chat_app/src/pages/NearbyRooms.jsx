@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getNearbyRooms, startLocalRoom, getUserCount, logout as logoutUser } from '../services/chat'
 import { getPosition } from '../services/geo'
+import mixpanel from '../mixpanel'
 import StartChatBox from '../components/StartChatBox'
 import CinematicSwitch from '../components/ui/cinematic-glow-toggle'
 import { useBlockBack } from '../components/hooks/use-block-back'
@@ -23,6 +24,7 @@ const MENU_ITEMS = [
 ]
 
 async function logout(navigate) {
+  mixpanel.track('Session Ended')
   await logoutUser() // clears server-side presence + the local session
   navigate('/', { replace: true })
 }
@@ -118,8 +120,18 @@ function NearbyRooms() {
   useEffect(() => {
     let alive = true
     getPosition()
-      .then((c) => alive && setCoords(c))
-      .catch((e) => alive && setGeoError(e.code))
+      .then((c) => {
+        if (alive) {
+          setCoords(c)
+          mixpanel.track('Location Permission Result', { status: 'granted' })
+        }
+      })
+      .catch((e) => {
+        if (alive) {
+          setGeoError(e.code)
+          mixpanel.track('Location Permission Result', { status: 'denied', reason: e.code })
+        }
+      })
     return () => { alive = false }
   }, [])
 
@@ -135,10 +147,12 @@ function NearbyRooms() {
   function handleLocationSuccess(c) {
     setGeoError(null)
     setCoords(c)
+    mixpanel.track('Location Permission Result', { status: 'granted' })
   }
 
   function handleLocationError(e) {
     setGeoError(e.code)
+    mixpanel.track('Location Permission Result', { status: 'denied', reason: e.code })
   }
 
   async function handleStart(text) {
@@ -147,6 +161,8 @@ function NearbyRooms() {
     setStartError('')
     try {
       const room = await startLocalRoom({ lat: coords.lat, lng: coords.lng, message: text })
+      mixpanel.track('Room Created', { roomId: room.id })
+      mixpanel.track('Geofence created', { lat: coords.lat, lng: coords.lng })
       navigate(`/rooms/${room.id}`)
     } catch (e) {
       setStartError(e.message || 'Could not start the chat.')

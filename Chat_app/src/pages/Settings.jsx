@@ -1,8 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
+import mixpanel from '../mixpanel'
 
 function Settings() {
   const navigate = useNavigate()
+
+  const handleTrackChange = (settingName, value) => {
+    mixpanel.track('Settings Changed', { setting: settingName, value })
+  }
 
   return (
     <>
@@ -47,7 +52,12 @@ function Settings() {
             <h2 className="text-sm font-medium text-gray-700 dark:text-zinc-200">Location</h2>
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-gray-600 dark:text-zinc-300">Share my location</span>
-              <input type="checkbox" defaultChecked className="h-4 w-4 accent-gray-900 dark:accent-zinc-100" />
+              <input
+                type="checkbox"
+                defaultChecked
+                onChange={(e) => handleTrackChange('share_location', e.target.checked)}
+                className="h-4 w-4 accent-gray-900 dark:accent-zinc-100"
+              />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm text-gray-600 dark:text-zinc-300">
@@ -55,6 +65,7 @@ function Settings() {
               </span>
               <select
                 defaultValue="1000"
+                onChange={(e) => handleTrackChange('discovery_radius', e.target.value)}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:bg-zinc-700"
               >
                 <option value="500">500 m</option>
@@ -68,11 +79,20 @@ function Settings() {
             <h2 className="text-sm font-medium text-gray-700 dark:text-zinc-200">Notifications</h2>
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-gray-600 dark:text-zinc-300">New messages</span>
-              <input type="checkbox" defaultChecked className="h-4 w-4 accent-gray-900 dark:accent-zinc-100" />
+              <input
+                type="checkbox"
+                defaultChecked
+                onChange={(e) => handleTrackChange('notifications_new_messages', e.target.checked)}
+                className="h-4 w-4 accent-gray-900 dark:accent-zinc-100"
+              />
             </label>
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-gray-600 dark:text-zinc-300">Someone joins my room</span>
-              <input type="checkbox" className="h-4 w-4 accent-gray-900 dark:accent-zinc-100" />
+              <input
+                type="checkbox"
+                onChange={(e) => handleTrackChange('notifications_someone_joins', e.target.checked)}
+                className="h-4 w-4 accent-gray-900 dark:accent-zinc-100"
+              />
             </label>
           </section>
 

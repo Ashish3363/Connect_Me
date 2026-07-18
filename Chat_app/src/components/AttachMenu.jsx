@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, Image as ImageIcon } from 'lucide-react'
 
+import mixpanel from '../mixpanel'
+
 // The round "+" button at the LEFT of the composer (WhatsApp-style). Tapping it
 // rotates the icon 45° (+ becomes ×) and pops up a small menu. Picking an option
 // fires the hidden <input type="file"> and hands the chosen File back via
@@ -62,7 +64,13 @@ function AttachMenu({ onPickImage, disabled = false }) {
       <button
         type="button"
         className={`attach-btn ${open ? 'open' : ''}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          const next = !open
+          setOpen(next)
+          if (next) {
+            mixpanel.track('Attachment Menu Opened')
+          }
+        }}
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
