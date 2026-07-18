@@ -6,6 +6,7 @@ import { getDmMessages, connectDm, getCurrentPosition, avatarUrl, markDmRead } f
 import { uploadDmPhoto } from '../services/photos'
 import { useSendPhoto } from '../hooks/useSendPhoto'
 import { validatePhotoFile } from '../types/messages'
+import mixpanel from '../mixpanel'
 
 const LOCATION_REFRESH_MS = 4 * 60 * 1000
 
@@ -109,6 +110,7 @@ function DmPanel({ roomId, connection, onClose }) {
       },
       onGeofenceExit: () => setSelfInside(false),
       onError: (f) => {
+        mixpanel.track('Message Delivery Failed', { reason: f.code || 'unknown', type: 'private' })
         if (f.code === 'stale_location') {
           pendingResendRef.current = lastAttemptRef.current
           setNotice('Refreshing your location…')
@@ -137,6 +139,13 @@ function DmPanel({ roomId, connection, onClose }) {
 
   const canSend = selfInside === true && peerPresent === true
 
+  const trackFirstMessage = () => {
+    if (!localStorage.getItem('first_message_sent')) {
+      mixpanel.track('First message send')
+      localStorage.setItem('first_message_sent', 'true')
+    }
+  }
+
   const handleSend = useCallback(
     (e) => {
       e.preventDefault()
@@ -145,6 +154,8 @@ function DmPanel({ roomId, connection, onClose }) {
       setDraft('')
       lastAttemptRef.current = text
       connRef.current?.send(text)
+      mixpanel.track('Private Message Sent', { type: 'text' })
+      trackFirstMessage()
     },
     [draft, canSend],
   )
@@ -161,6 +172,10 @@ function DmPanel({ roomId, connection, onClose }) {
       }
       setNotice(null)
       sendPhoto.mutate(file, {
+        onSuccess: () => {
+          mixpanel.track('Private Message Sent', { type: 'photo' })
+          trackFirstMessage()
+        },
         onError: (e) => setNotice(e?.message || 'Could not send photo.'),
       })
     },

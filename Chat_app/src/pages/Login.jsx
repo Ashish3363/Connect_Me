@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Eye, EyeOff } from 'lucide-react'
 import { login, signup } from '../api'
+import mixpanel from '../mixpanel'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -37,7 +38,9 @@ export default function Login() {
   const isRegister = mode === 'register'
 
   function switchMode() {
-    setMode(isRegister ? 'login' : 'register')
+    const nextMode = isRegister ? 'login' : 'register'
+    mixpanel.track('Auth Mode Switched', { targetMode: nextMode })
+    setMode(nextMode)
     setFirstName('')
     setLastName('')
     setEmail('')
@@ -68,6 +71,10 @@ export default function Login() {
     }
 
     setLoading(true)
+    
+    // Track attempts
+    mixpanel.track(isRegister ? 'Signup Attempted' : 'Login Attempted', { email })
+
     try {
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim()
       const data = isRegister
@@ -79,9 +86,26 @@ export default function Login() {
       if (data?.user?.email) localStorage.setItem('email', data.user.email)
       localStorage.setItem('display_name', data?.user?.display_name || '')
       localStorage.setItem('avatar_v', data?.user?.avatar_updated_at || '')
+      
+      // Identify user and track success
+      if (data?.user?.id) {
+        if (isRegister) {
+          mixpanel.alias(data.user.id)
+        }
+        mixpanel.identify(data.user.id)
+        mixpanel.people.set({
+          $email: data.user.email,
+          $name: data.user.display_name || displayName,
+        })
+      }
+      mixpanel.track(isRegister ? 'User Signed Up' : 'User Logged In')
+
       // replace: drop the login page from history so Back doesn't return to it.
       navigate('/splash', { replace: true })
     } catch (err) {
+      mixpanel.track(isRegister ? 'Signup Failed' : 'Login Failed', {
+        error: err.message,
+      })
       setError(err.message)
     } finally {
       setLoading(false)
@@ -163,7 +187,10 @@ export default function Login() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
+                    onClick={() => {
+                      mixpanel.track('Password Visibility Toggled', { show: !showPassword })
+                      setShowPassword((v) => !v)
+                    }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

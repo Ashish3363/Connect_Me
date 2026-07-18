@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Mail, Copy, Check } from 'lucide-react'
+import mixpanel from '../mixpanel'
 import '../styles/contact.css'
 
 // lucide-react dropped its brand icons, so the GitHub / LinkedIn marks are
@@ -38,6 +39,7 @@ function CopyButton({ value }) {
       await navigator.clipboard.writeText(value)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
+      mixpanel.track('Support Link Clicked', { type: 'email_copy' })
     } catch (err) {
       console.error('Failed to copy:', err)
     }
@@ -68,6 +70,10 @@ function CopyButton({ value }) {
 }
 
 function ContactCard({ icon: Icon, label, value, href, external, delay, children }) {
+  const handleClick = () => {
+    mixpanel.track('Support Link Clicked', { type: label.toLowerCase() })
+  }
+
   return (
     <div className="contact-card glass" style={{ animationDelay: `${delay}ms` }}>
       <div className="contact-card-head">
@@ -80,6 +86,7 @@ function ContactCard({ icon: Icon, label, value, href, external, delay, children
         <a
           className="contact-card-value"
           href={href}
+          onClick={handleClick}
           {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         >
           {value}
