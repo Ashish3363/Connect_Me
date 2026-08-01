@@ -8,7 +8,7 @@ import {
   uploadAvatar,
   changePassword,
 } from '../services/chat'
-import mixpanel from '../mixpanel'
+import analytics from '../analytics'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_BYTES = 2 * 1024 * 1024
@@ -106,7 +106,7 @@ function EditProfile() {
       }
       if (file) {
         updated = await uploadAvatar(file)
-        mixpanel.track('Avatar Changed')
+        analytics.trackAvatarChanged()
       }
       if (pwTouched) {
         await changePassword({ currentPassword, newPassword, confirmPassword })
@@ -114,7 +114,7 @@ function EditProfile() {
       }
 
       if (fieldsChanged.length > 0) {
-        mixpanel.track('Profile Updated', { fields_changed: fieldsChanged })
+        analytics.trackProfileUpdated(fieldsChanged)
       }
 
       const fresh = updated || (await getMe())

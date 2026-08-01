@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
 import { MouseGlow } from './components/ui/mouse-glow'
-import mixpanel from './mixpanel'
+import analytics from './analytics'
 
 // Login ships in the main bundle (first paint); everything behind auth is
 // code-split so the initial download stays small.
@@ -22,21 +22,21 @@ function App() {
   const location = useLocation()
 
   useEffect(() => {
-    mixpanel.track('Page Viewed', {
+    analytics.trackPageView({
       path: location.pathname,
       search: location.search,
     })
   }, [location])
 
   useEffect(() => {
-    mixpanel.track('App Opened')
-    mixpanel.track('Session Started')
+    analytics.trackAppOpened()
+    analytics.trackSessionStarted()
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        mixpanel.track('User Became Inactive')
+        analytics.trackUserBecameInactive()
       } else {
-        mixpanel.track('User Became Active')
+        analytics.trackUserBecameActive()
       }
     }
 

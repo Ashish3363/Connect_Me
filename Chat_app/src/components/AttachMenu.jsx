@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, Image as ImageIcon } from 'lucide-react'
 
-import mixpanel from '../mixpanel'
+import analytics from '../analytics'
 
 // The round "+" button at the LEFT of the composer (WhatsApp-style). Tapping it
 // rotates the icon 45° (+ becomes ×) and pops up a small menu. Picking an option
@@ -9,7 +9,7 @@ import mixpanel from '../mixpanel'
 // onPickImage; the parent validates + uploads.
 //
 //   [ + ]  →  rotates to ×, menu above:  🖼 Photo Library
-function AttachMenu({ onPickImage, disabled = false }) {
+function AttachMenu({ onPickImage, disabled = false, context = 'chat_room' }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const libraryRef = useRef(null)
@@ -68,7 +68,7 @@ function AttachMenu({ onPickImage, disabled = false }) {
           const next = !open
           setOpen(next)
           if (next) {
-            mixpanel.track('Attachment Menu Opened')
+            analytics.trackAttachmentMenuOpened(context)
           }
         }}
         disabled={disabled}

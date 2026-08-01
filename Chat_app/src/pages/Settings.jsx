@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import mixpanel from '../mixpanel'
+import analytics from '../analytics'
 
 function Settings() {
   const navigate = useNavigate()
 
   const handleTrackChange = (settingName, value) => {
-    mixpanel.track('Settings Changed', { setting: settingName, value })
+    analytics.trackSettingsChanged(settingName, value)
   }
 
   return (

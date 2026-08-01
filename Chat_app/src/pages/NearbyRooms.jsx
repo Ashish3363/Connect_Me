@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getNearbyRooms, startLocalRoom, getUserCount, logout as logoutUser } from '../services/chat'
 import { getPosition } from '../services/geo'
-import mixpanel from '../mixpanel'
+import analytics, { LocationPermissionStatus } from '../analytics'
 import StartChatBox from '../components/StartChatBox'
 import CinematicSwitch from '../components/ui/cinematic-glow-toggle'
 import { useBlockBack } from '../components/hooks/use-block-back'
@@ -24,7 +24,7 @@ const MENU_ITEMS = [
 ]
 
 async function logout(navigate) {
-  mixpanel.track('Session Ended')
+  analytics.trackSessionEnded()
   await logoutUser() // clears server-side presence + the local session
   navigate('/', { replace: true })
 }
@@ -123,13 +123,13 @@ function NearbyRooms() {
       .then((c) => {
         if (alive) {
           setCoords(c)
-          mixpanel.track('Location Permission Result', { status: 'granted' })
+          analytics.trackLocationPermission(LocationPermissionStatus.GRANTED)
         }
       })
       .catch((e) => {
         if (alive) {
           setGeoError(e.code)
-          mixpanel.track('Location Permission Result', { status: 'denied', reason: e.code })
+          analytics.trackLocationPermission(LocationPermissionStatus.DENIED, e.code)
         }
       })
     return () => { alive = false }
@@ -147,12 +147,12 @@ function NearbyRooms() {
   function handleLocationSuccess(c) {
     setGeoError(null)
     setCoords(c)
-    mixpanel.track('Location Permission Result', { status: 'granted' })
+    analytics.trackLocationPermission(LocationPermissionStatus.GRANTED)
   }
 
   function handleLocationError(e) {
     setGeoError(e.code)
-    mixpanel.track('Location Permission Result', { status: 'denied', reason: e.code })
+    analytics.trackLocationPermission(LocationPermissionStatus.DENIED, e.code)
   }
 
   async function handleStart(text) {
@@ -161,8 +161,8 @@ function NearbyRooms() {
     setStartError('')
     try {
       const room = await startLocalRoom({ lat: coords.lat, lng: coords.lng, message: text })
-      mixpanel.track('Room Created', { roomId: room.id })
-      mixpanel.track('Geofence created', { lat: coords.lat, lng: coords.lng })
+      analytics.trackRoomCreated(room.id)
+      analytics.trackGeofenceCreated(coords.lat, coords.lng)
       navigate(`/rooms/${room.id}`)
     } catch (e) {
       setStartError(e.message || 'Could not start the chat.')
