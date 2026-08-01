@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test \"src/**/*.test.js\"",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.js\"",
     "preview": "vite preview",
     "optimize:images": "node scripts/optimize-images.mjs"
   },

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Eye, EyeOff } from 'lucide-react'
 import { login, signup } from '../api'
-import mixpanel from '../mixpanel'
+import analytics from '../analytics'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -39,7 +39,7 @@ export default function Login() {
 
   function switchMode() {
     const nextMode = isRegister ? 'login' : 'register'
-    mixpanel.track('Auth Mode Switched', { targetMode: nextMode })
+    analytics.trackAuthModeSwitched(nextMode)
     setMode(nextMode)
     setFirstName('')
     setLastName('')
@@ -73,7 +73,7 @@ export default function Login() {
     setLoading(true)
     
     // Track attempts
-    mixpanel.track(isRegister ? 'Signup Attempted' : 'Login Attempted', { email })
+    analytics.trackAuthAttempt(isRegister, email)
 
     try {
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim()
@@ -90,22 +90,20 @@ export default function Login() {
       // Identify user and track success
       if (data?.user?.id) {
         if (isRegister) {
-          mixpanel.alias(data.user.id)
+          analytics.aliasUser(data.user.id)
         }
-        mixpanel.identify(data.user.id)
-        mixpanel.people.set({
+        analytics.identifyUser(data.user.id)
+        analytics.setUserProfile({
           $email: data.user.email,
           $name: data.user.display_name || displayName,
         })
       }
-      mixpanel.track(isRegister ? 'User Signed Up' : 'User Logged In')
+      analytics.trackAuthSuccess(isRegister)
 
       // replace: drop the login page from history so Back doesn't return to it.
       navigate('/splash', { replace: true })
     } catch (err) {
-      mixpanel.track(isRegister ? 'Signup Failed' : 'Login Failed', {
-        error: err.message,
-      })
+      analytics.trackAuthFailure(isRegister, err.message)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -188,7 +186,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => {
-                      mixpanel.track('Password Visibility Toggled', { show: !showPassword })
+                      analytics.trackPasswordVisibilityToggled(!showPassword)
                       setShowPassword((v) => !v)
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"

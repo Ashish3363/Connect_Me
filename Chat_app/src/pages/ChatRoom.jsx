@@ -6,7 +6,7 @@ import MessageList from '../components/MessageList'
 import DmPanel from '../components/DmPanel'
 import AttachMenu from '../components/AttachMenu'
 import { getRoom, getRoomMessages, connectRoom, getCurrentPosition, avatarUrl, startDm, getDmConnections } from '../services/chat'
-import mixpanel from '../mixpanel'
+import analytics from '../analytics'
 import { uploadRoomPhoto } from '../services/photos'
 import { useSendPhoto } from '../hooks/useSendPhoto'
 import { validatePhotoFile } from '../types/messages'
@@ -92,7 +92,7 @@ function ChatRoom() {
           `You're ${Math.round(f.distance_m)} m away — move back within ` +
             `${f.grace_seconds_remaining}s or you'll leave this room.`,
         )
-        mixpanel.track('Geofence Warning Received', { distance_m: f.distance_m })
+        analytics.trackGeofenceWarningReceived(f.distance_m, roomId)
         if (recheckTimer) clearTimeout(recheckTimer)
         recheckTimer = setTimeout(
           pushLocation,
@@ -101,12 +101,12 @@ function ChatRoom() {
       },
       onGeofenceExit: () => {
         setNotice("You've left this area — returning to nearby rooms.")
-        mixpanel.track('Geofence Exited Automatically')
+        analytics.trackGeofenceExitedAutomatically(roomId)
         conn.close()
         navigate('/rooms')
       },
       onError: (f) => {
-        mixpanel.track('Message Delivery Failed', { reason: f.code || 'unknown' })
+        analytics.trackMessageDeliveryFailed(f.code || 'unknown', 'public', roomId)
         if (f.code === 'stale_location') {
           pendingResendRef.current = lastAttemptRef.current
           setNotice('Refreshing your location…')
@@ -137,7 +137,7 @@ function ChatRoom() {
       setRoom(r)
       setMessages(msgs)
       setLoadedFor(roomId)
-      mixpanel.track('Entered Chat Room', { roomId, roomName: r.name })
+      analytics.trackEnteredChatRoom(roomId, r.name)
     })
     return () => { alive = false }
   }, [roomId])
@@ -146,7 +146,7 @@ function ChatRoom() {
 
   const trackFirstMessage = () => {
     if (!localStorage.getItem('first_message_sent')) {
-      mixpanel.track('First message send')
+      analytics.trackFirstMessageSend()
       localStorage.setItem('first_message_sent', 'true')
     }
   }
@@ -159,7 +159,7 @@ function ChatRoom() {
       setDraft('')
       lastAttemptRef.current = text
       connRef.current?.send(text)
-      mixpanel.track('Public Message Sent', { type: 'text' })
+      analytics.trackPublicMessageSent('text', roomId, text.length)
       trackFirstMessage()
     },
     [draft],
@@ -178,7 +178,7 @@ function ChatRoom() {
       setNotice(null)
       sendPhoto.mutate(file, {
         onSuccess: () => {
-          mixpanel.track('Public Message Sent', { type: 'photo' })
+          analytics.trackPublicMessageSent('photo', roomId)
           trackFirstMessage()
         },
         onError: (e) => setNotice(e?.message || 'Could not send photo.'),
@@ -194,7 +194,7 @@ function ChatRoom() {
       if (!senderId || senderId === myId) return
       try {
         const conn = await startDm(roomId, senderId)
-        mixpanel.track('Private Conversation Started', { otherUserId: senderId })
+        analytics.trackPrivateConversationStarted(senderId, roomId)
         setDm(conn)
       } catch (err) {
         setNotice(err?.message || 'Could not open private chat.')
@@ -208,7 +208,7 @@ function ChatRoom() {
     const next = !dmListOpen
     setDmListOpen(next)
     if (next) {
-      mixpanel.track('Personal Chats List Viewed')
+      analytics.trackPersonalChatsListViewed()
       setConnectionsLoading(true)
       getDmConnections(roomId)
         .then(setConnections)
