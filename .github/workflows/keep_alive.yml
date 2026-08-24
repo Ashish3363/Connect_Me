@@ -22,19 +22,31 @@ jobs:
           fi
           
           TARGET_URL="$RENDER_BACKEND_URL"
-          
-          # Remove trailing slash if present
           TARGET_URL="${TARGET_URL%/}"
           
-          echo "Pinging healthz endpoint at: ${TARGET_URL}/healthz"
+          MAX_RETRIES=3
+          TIMEOUT=90
+          RETRY_DELAY=15
           
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${TARGET_URL}/healthz")
+          echo "Pinging healthz endpoint at: ${TARGET_URL}/healthz (max ${MAX_RETRIES} attempts, ${TIMEOUT}s timeout)..."
           
-          echo "HTTP Response Status Code: ${STATUS_CODE}"
+          SUCCESS=0
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $attempt of $MAX_RETRIES..."
+            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "${TARGET_URL}/healthz" || echo "000")
+            echo "HTTP Response Status Code: ${STATUS_CODE}"
+            
+            if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+              echo "Success: Render service is active and responsive."
+              SUCCESS=1
+              break
+            else
+              echo "Attempt $attempt failed (Status: ${STATUS_CODE}). Waiting ${RETRY_DELAY}s for server to warm up..."
+              sleep $RETRY_DELAY
+            fi
+          done
           
-          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
-            echo "Success: Render service is active and responsive."
-          else
-            echo "Error: Received HTTP status code ${STATUS_CODE} from ${TARGET_URL}/healthz"
+          if [ $SUCCESS -ne 1 ]; then
+            echo "Error: Render service failed to respond with HTTP 2xx after ${MAX_RETRIES} attempts."
             exit 1
           fi
