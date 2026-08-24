@@ -1,0 +1,40 @@
+name: Render Keep Alive Cron Job
+
+on:
+  schedule:
+    # Runs every 10 minutes to keep Render free tier service awake (15-min idle limit)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    name: Ping Health Check Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive Ping
+        env:
+          RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
+        run: |
+          if [ -z "$RENDER_BACKEND_URL" ]; then
+            echo "Error: RENDER_BACKEND_URL secret is not set in GitHub repository secrets!"
+            echo "Please add RENDER_BACKEND_URL under Settings -> Secrets and variables -> Actions in your repository."
+            exit 1
+          fi
+          
+          TARGET_URL="$RENDER_BACKEND_URL"
+          
+          # Remove trailing slash if present
+          TARGET_URL="${TARGET_URL%/}"
+          
+          echo "Pinging healthz endpoint at: ${TARGET_URL}/healthz"
+          
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${TARGET_URL}/healthz")
+          
+          echo "HTTP Response Status Code: ${STATUS_CODE}"
+          
+          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+            echo "Success: Render service is active and responsive."
+          else
+            echo "Error: Received HTTP status code ${STATUS_CODE} from ${TARGET_URL}/healthz"
+            exit 1
+          fi
