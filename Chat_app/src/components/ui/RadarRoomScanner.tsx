@@ -53,7 +53,8 @@ function getAngleForRoom(room: RadarRoom, index: number, total: number): number 
       hash |= 0
     }
     const baseAngle = Math.abs(hash) % 360
-    const spreadOffset = (index * (360 / Math.max(total, 1))) % 360
+    const safeTotal = Math.max(1, total || 1)
+    const spreadOffset = (index * (360 / safeTotal)) % 360
     return (baseAngle + spreadOffset) % 360
   } catch (err) {
     console.error('Error calculating room angle:', err)
@@ -66,24 +67,36 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
   onSelectRoom,
   maxDistanceM = RADAR_CONFIG.DEFAULT_MAX_DISTANCE_M,
 }) => {
+  const safeMaxDistanceM = useMemo(() => {
+    return Number.isFinite(maxDistanceM) && maxDistanceM > 0
+      ? maxDistanceM
+      : RADAR_CONFIG.DEFAULT_MAX_DISTANCE_M
+  }, [maxDistanceM])
+
   const blips: CalculatedBlip[] = useMemo(() => {
     try {
       if (!Array.isArray(rooms)) return []
 
       return rooms.map((room, idx) => {
-        const rawDist = room.distanceM ?? 0
-        const clampedDist = Math.max(0, Math.min(rawDist, maxDistanceM))
+        const rawDist = Number.isFinite(room.distanceM) ? (room.distanceM as number) : 0
+        const clampedDist = Math.max(0, Math.min(rawDist, safeMaxDistanceM))
         
-        const distRatio = clampedDist / maxDistanceM
+        // Prevent division by zero edge-case
+        const distRatio = safeMaxDistanceM > 0 ? clampedDist / safeMaxDistanceM : 0
+        const safeDistRatio = Math.max(0, Math.min(1, distRatio))
+
         const radiusPct =
           RADAR_CONFIG.MIN_RADIUS_PERCENT +
-          distRatio * (RADAR_CONFIG.MAX_RADIUS_PERCENT - RADAR_CONFIG.MIN_RADIUS_PERCENT)
+          safeDistRatio * (RADAR_CONFIG.MAX_RADIUS_PERCENT - RADAR_CONFIG.MIN_RADIUS_PERCENT)
 
         const angleDeg = getAngleForRoom(room, idx, rooms.length)
         const angleRad = (angleDeg * Math.PI) / 180
 
-        const x = radiusPct * Math.cos(angleRad)
-        const y = radiusPct * Math.sin(angleRad)
+        const xPct = radiusPct * Math.cos(angleRad)
+        const yPct = radiusPct * Math.sin(angleRad)
+
+        const x = Number.isFinite(xPct) ? xPct : 0
+        const y = Number.isFinite(yPct) ? yPct : 0
 
         const distanceDisplay = rawDist > 0 ? `${rawDist}m` : 'Nearby'
         const membersCount = room.members ?? 1
@@ -95,7 +108,7 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
           x,
           y,
           angleDeg,
-          distanceNormalized: distRatio,
+          distanceNormalized: safeDistRatio,
           distanceDisplay,
           membersCount,
         }
@@ -104,7 +117,7 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
       console.error('Failed to calculate room coordinates:', err)
       return []
     }
-  }, [rooms, maxDistanceM])
+  }, [rooms, safeMaxDistanceM])
 
   const handleRoomClick = (roomId: string) => {
     try {
@@ -117,7 +130,7 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
   }
 
   return (
-    <div className="radar-wrapper">
+    <div className="radar-wrapper" role="region" aria-label="Radar room scanner">
       {/* Main Circular Dish Container */}
       <div className="radar-dish-container">
         <div className="radar-dish">
@@ -140,10 +153,11 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
               duration: 6,
               ease: 'linear',
             }}
+            aria-hidden="true"
           />
 
           {/* Center Point - YOU */}
-          <div className="radar-center-node" title="Your Location">
+          <div className="radar-center-node" title="Your Location" aria-label="Your current location">
             <div className="center-node-core" />
             <span className="center-node-label">YOU</span>
           </div>
@@ -162,8 +176,10 @@ export const RadarRoomScanner: React.FC<RadarRoomScannerProps> = ({
                 onClick={() => handleRoomClick(room.id)}
                 role="button"
                 tabIndex={0}
+                aria-label={`Join ${displayName}, distance ${distanceDisplay}`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
                     handleRoomClick(room.id)
                   }
                 }}

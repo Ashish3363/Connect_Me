@@ -533,7 +533,8 @@
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, filter 0.2s;
 }
 
-.radar-room-circle:hover {
+.radar-room-circle:hover,
+.radar-room-circle:focus-visible {
   z-index: 30;
   animation-play-state: paused;
   transform: translate(-50%, -50%) scale(1.15);
@@ -541,6 +542,8 @@
   border-color: #38e0a0;
   filter: brightness(1.3);
   box-shadow: 0 0 26px rgba(56, 224, 160, 0.65), inset 0 0 12px rgba(56, 224, 160, 0.35), 0 8px 28px rgba(0, 0, 0, 0.8);
+  outline: 2px solid #38e0a0;
+  outline-offset: 3px;
 }
 
 .room-circle-title {
@@ -554,7 +557,8 @@
   transition: text-shadow 0.2s;
 }
 
-.radar-room-circle:hover .room-circle-title {
+.radar-room-circle:hover .room-circle-title,
+.radar-room-circle:focus-visible .room-circle-title {
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
 }
 
@@ -568,7 +572,8 @@
   transition: color 0.2s, text-shadow 0.2s;
 }
 
-.radar-room-circle:hover .room-circle-dist {
+.radar-room-circle:hover .room-circle-dist,
+.radar-room-circle:focus-visible .room-circle-dist {
   color: #ffffff;
   text-shadow: 0 0 6px rgba(56, 224, 160, 0.9);
 }
@@ -578,6 +583,14 @@
   color: var(--text-dim);
   text-align: center;
   margin-top: 4px;
+}
+
+/* Accessibility: Accessibility reduced motion handling */
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep-beam,
+  .radar-room-circle {
+    animation: none !important;
+  }
 }
 
 
