@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
-import { MouseGlow } from './components/ui/mouse-glow'
 import analytics from './analytics'
 
 // Login ships in the main bundle (first paint); everything behind auth is
@@ -47,9 +46,7 @@ function App() {
   }, [])
 
   return (
-    <>
-      <MouseGlow />
-      <Suspense fallback={<div className="route-fallback">Loading…</div>}>
+    <Suspense fallback={<div className="route-fallback">Loading…</div>}>
         <Routes>
           <Route
             path="/"
@@ -112,7 +109,6 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-    </>
   )
 }
 

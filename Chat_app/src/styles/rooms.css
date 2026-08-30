@@ -357,3 +357,227 @@
   .rooms-wrap,
   .type-caret { animation: none; transition: none; }
 }
+
+/* ============================================================================
+   Radar Room Scanner UI Styles (Aligned with Project Design System)
+   ============================================================================ */
+
+.radar-wrapper {
+  position: relative;
+  max-width: 680px;
+  width: 100%;
+  margin: 12px auto 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  font-family: inherit;
+  animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Main Radar Dish Container */
+.radar-dish-container {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-dish {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(16, 32, 28, 0.78) 0%, rgba(10, 18, 20, 0.92) 65%, rgba(4, 8, 14, 0.98) 100%);
+  border: 1px solid rgba(56, 224, 160, 0.28);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    var(--glass-inset),
+    0 0 25px rgba(56, 224, 160, 0.14);
+  backdrop-filter: blur(var(--blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
+  user-select: none;
+}
+
+/* Concentric Distance Rings */
+.radar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed rgba(56, 224, 160, 0.2);
+  pointer-events: none;
+}
+
+.ring-outer { width: 96%; height: 96%; border-style: solid; border-color: rgba(56, 224, 160, 0.16); }
+.ring-far { width: 72%; height: 72%; }
+.ring-mid { width: 48%; height: 48%; }
+.ring-near { width: 24%; height: 24%; }
+
+.radar-ring-label {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(56, 224, 160, 0.85);
+  background: rgba(8, 16, 20, 0.88);
+  border: 1px solid rgba(56, 224, 160, 0.3);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+/* Radar Grid Axis Lines */
+.radar-grid-axis {
+  position: absolute;
+  background: rgba(56, 224, 160, 0.1);
+  pointer-events: none;
+}
+
+.axis-h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.axis-v {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+/* Rotating Scanner Conical Beam */
+.radar-sweep-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(56, 224, 160, 0.26) 0deg, rgba(56, 224, 160, 0.04) 40deg, transparent 80deg);
+  pointer-events: none;
+}
+
+/* Center YOU Node */
+.radar-center-node {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+}
+
+.center-node-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38e0a0;
+  box-shadow: 0 0 12px #38e0a0;
+}
+
+.center-node-label {
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: rgba(8, 16, 20, 0.88);
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 224, 160, 0.35);
+}
+
+/* Gentle Floating Bobbing Animation for Radar Room Badges */
+@keyframes floatBob {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-6px);
+  }
+}
+
+/* Circular Room Badge Nodes (Floating Style) */
+.radar-room-circle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(12, 22, 26, 0.88);
+  border: 1px solid rgba(56, 224, 160, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), var(--glass-inset);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  animation: floatBob 3.6s ease-in-out infinite;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.radar-room-circle:hover {
+  z-index: 30;
+  animation-play-state: paused;
+  transform: translate(-50%, -50%) scale(1.15);
+  background: rgba(22, 45, 40, 0.98);
+  border-color: #38e0a0;
+  filter: brightness(1.3);
+  box-shadow: 0 0 26px rgba(56, 224, 160, 0.65), inset 0 0 12px rgba(56, 224, 160, 0.35), 0 8px 28px rgba(0, 0, 0, 0.8);
+}
+
+.room-circle-title {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  line-height: 1.15;
+  text-align: center;
+  transition: text-shadow 0.2s;
+}
+
+.radar-room-circle:hover .room-circle-title {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+}
+
+.room-circle-dist {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: rgba(56, 224, 160, 0.85);
+  margin-top: 2px;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+
+.radar-room-circle:hover .room-circle-dist {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(56, 224, 160, 0.9);
+}
+
+.radar-instruction {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 4px;
+}
+
+
