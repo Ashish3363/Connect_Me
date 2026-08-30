@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { getNearbyRooms, startLocalRoom, getUserCount, logout as logoutUser } from '../services/chat'
+import { getNearbyRooms, startLocalRoom, /* getUserCount, */ logout as logoutUser } from '../services/chat'
 import { getPosition } from '../services/geo'
 import analytics, { LocationPermissionStatus } from '../analytics'
 import StartChatBox from '../components/StartChatBox'
 import CinematicSwitch from '../components/ui/cinematic-glow-toggle'
+import RadarRoomScanner from '../components/ui/RadarRoomScanner'
 import { useBlockBack } from '../components/hooks/use-block-back'
 import '../styles/rooms.css'
 
@@ -107,15 +108,15 @@ function NearbyRooms() {
   const [geoError, setGeoError] = useState(null)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState('')
-  const [userCount, setUserCount] = useState(null)
-
-  useEffect(() => {
-    let alive = true
-    getUserCount()
-      .then((n) => alive && setUserCount(n))
-      .catch(() => {})
-    return () => { alive = false }
-  }, [])
+  // Preserved userCount state & effect (commented out for easy re-enabling)
+  // const [userCount, setUserCount] = useState(null)
+  // useEffect(() => {
+  //   let alive = true
+  //   getUserCount()
+  //     .then((n) => alive && setUserCount(n))
+  //     .catch(() => {})
+  //   return () => { alive = false }
+  // }, [])
 
   useEffect(() => {
     let alive = true
@@ -173,7 +174,7 @@ function NearbyRooms() {
   const subtitle = geoError
     ? 'Location needed'
     : rooms === null
-      ? 'Finding peoples within 1 km…'
+      ? 'Scanning for active rooms…'
       : rooms.length
         ? `${rooms.length} active within 1 km`
         : 'No active chats within 1 km yet'
@@ -195,37 +196,24 @@ function NearbyRooms() {
             </p>
             <CinematicSwitch onSuccess={handleLocationSuccess} onError={handleLocationError} />
           </div>
-        ) : rooms === null ? (
-          <div className="rooms-empty glass">
-            <span className="rooms-empty-icon">📡</span>
-            <p>Finding peoples within 1&nbsp;km…</p>
-          </div>
-        ) : rooms.length ? (
-          <div className="rooms-grid">
-            {rooms.map((room, i) => (
-              <button
-                key={room.id}
-                className="room-card glass"
-                style={{ animationDelay: `${i * 70}ms` }}
-                onClick={() => navigate(`/rooms/${room.id}`)}
-              >
-                <span className="room-card-name"><span className="heading-highlight">Click Me</span> to Enter the chat.</span>
-              </button>
-            ))}
-          </div>
         ) : (
           <>
-            <StartChatBox onStart={handleStart} busy={starting} disabled={!coords} />
-            {startError && <p className="start-error">{startError}</p>}
-            <div className="rooms-empty glass">
-              <span className="rooms-empty-icon">🛰️</span>
-              <p>No one&apos;s chatting around you right now.</p>
-              <span>Be the first — start a chat above.</span>
-            </div>
+            {rooms !== null && rooms.length === 0 && (
+              <>
+                <StartChatBox onStart={handleStart} busy={starting} disabled={!coords} />
+                {startError && <p className="start-error">{startError}</p>}
+              </>
+            )}
+            <RadarRoomScanner
+              rooms={rooms || []}
+              onSelectRoom={(roomId) => navigate(`/rooms/${roomId}`)}
+            />
           </>
         )}
       </div>
 
+      {/* Hidden for now (Users stat card retained in code for easy re-enabling) */}
+      {/* 
       <div className="room-card users-stat-card">
         <span className="room-card-name">
           Users: <span className="heading-highlight">
@@ -233,6 +221,7 @@ function NearbyRooms() {
           </span>
         </span>
       </div>
+      */}
     </div>
   )
 }
